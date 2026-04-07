@@ -1,0 +1,191 @@
+<resources>
+    <string name="app_name">AutoCare</string>
+
+    <!-- Splash Screen -->
+    <string name="splash_creator">Hananel Sabag | חננאל סבג</string>
+    <string name="splash_version">Version 1.0</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_cars">My Cars</string>
+    <string name="nav_reminders">Reminders</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_cars_description">Go to My Cars</string>
+    <string name="nav_reminders_description">Go to Reminders</string>
+    <string name="nav_settings_description">Go to Settings</string>
+
+    <!-- FAB -->
+    <string name="fab_content_description">Quick add</string>
+    <string name="fab_add_car_description">Add car</string>
+
+    <!-- Cars Screen -->
+    <string name="screen_cars_empty_title">No cars yet</string>
+    <string name="screen_cars_empty_subtitle">Tap + to add your first car</string>
+    <string name="screen_settings_title">Settings</string>
+
+    <!-- Car Card -->
+    <string name="car_card_test_label">Test</string>
+    <string name="car_card_insurance_label">Insurance</string>
+    <string name="car_card_km_format">%s km</string>
+
+    <!-- Add / Edit Car Sheet -->
+    <string name="add_car_title">Add Car</string>
+    <string name="edit_car_title">Edit Car</string>
+    <string name="add_car_photo">Add Photo</string>
+    <string name="add_car_section_required">Required Details</string>
+    <string name="add_car_section_optional">Optional Details</string>
+    <string name="add_car_section_dates">Expiry Dates</string>
+    <string name="add_car_make">Make</string>
+    <string name="add_car_model">Model</string>
+    <string name="add_car_year">Year</string>
+    <string name="add_car_license_plate">License Plate</string>
+    <string name="add_car_color">Color</string>
+    <string name="add_car_current_km">Current KM</string>
+    <string name="add_car_test_expiry">Test Expiry</string>
+    <string name="add_car_insurance_expiry">Compulsory Insurance</string>
+    <string name="add_car_comprehensive_expiry">Comprehensive Insurance</string>
+    <string name="add_car_notes">Notes</string>
+    <string name="add_car_save">Save Car</string>
+
+    <!-- Validation Errors -->
+    <string name="error_field_required">Required field</string>
+    <string name="error_year_invalid">Invalid year (1900–2030)</string>
+
+    <!-- Date Picker -->
+    <string name="date_not_set">Tap to select date</string>
+    <string name="btn_confirm">OK</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_back">Back</string>
+    <string name="btn_delete">Delete</string>
+    <string name="btn_edit">Edit</string>
+
+    <!-- Status Banner -->
+    <string name="status_not_set">Not set</string>
+    <string name="status_expires_today">Expires today!</string>
+    <string name="status_expires_tomorrow">Expires tomorrow</string>
+    <string name="status_expired_days_ago">Expired %d days ago</string>
+    <string name="status_valid_until_days">Valid until %1$s · %2$d days left</string>
+
+    <!-- Car Profile Screen -->
+    <string name="car_profile_test_expiry">Test</string>
+    <string name="car_profile_insurance_expiry">Compulsory Insurance</string>
+    <string name="car_profile_comprehensive_expiry">Comprehensive Insurance</string>
+    <string name="car_profile_color">Color</string>
+    <string name="car_profile_current_km">Mileage</string>
+    <string name="car_profile_no_km">Unknown</string>
+    <string name="car_profile_notes">Notes</string>
+    <string name="car_profile_maintenance_history">Service History</string>
+    <string name="car_profile_test_history">Test History</string>
+    <string name="car_profile_documents">Documents</string>
+    <string name="car_profile_delete_car">Delete Car</string>
+    <string name="car_profile_edit_car">Edit</string>
+    <string name="car_profile_delete_confirm_title">Delete Car</string>
+    <string name="car_profile_delete_confirm_message">Are you sure you want to delete this car?\nAll data and records will be permanently lost.</string>
+    <string name="car_profile_delete_confirm_yes">Delete</string>
+    <string name="car_profile_delete_confirm_no">Cancel</string>
+    <string name="car_profile_status_section">Status</string>
+    <string name="car_profile_details_section">Car Details</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">AutoCare Reminders</string>
+    <string name="notification_channel_description">Reminders for test, insurance and service expiry</string>
+    <string name="notification_expires_today">%s — expires today!</string>
+    <string name="notification_expires_tomorrow">%s — expires tomorrow</string>
+    <string name="notification_expires_in_days">%1$s — %2$d days left</string>
+
+    <!-- Statistics -->
+    <string name="stats_section_title">Statistics</string>
+    <string name="stats_total_records">Services</string>
+    <string name="stats_last_service">Last Service</string>
+    <string name="stats_spent_this_year">Spent This Year</string>
+    <string name="stats_average_cost">Avg. Cost</string>
+
+    <!-- Maintenance History Screen -->
+    <string name="maintenance_history_title">Service History</string>
+    <string name="maintenance_history_add">Add Service</string>
+    <string name="maintenance_history_empty_title">No services recorded</string>
+    <string name="maintenance_history_empty_subtitle">Tap + to add your first record</string>
+
+    <!-- Add / Edit Maintenance Record Sheet -->
+    <string name="add_record_title">Add Service Record</string>
+    <string name="edit_record_title">Edit Service Record</string>
+    <string name="record_type_label">Record Type</string>
+    <string name="record_type_maintenance">Periodic Service</string>
+    <string name="record_type_repair">Repair</string>
+    <string name="record_type_wear">Wear Item</string>
+    <string name="record_date">Date</string>
+    <string name="record_description">Description</string>
+    <string name="record_km">KM at Service</string>
+    <string name="record_km_optional">KM (optional)</string>
+    <string name="record_cost_optional">Cost ₪ (optional)</string>
+    <string name="record_notes">Notes</string>
+    <string name="add_record_save">Save Record</string>
+    <string name="record_km_format">%s km</string>
+    <string name="record_cost_format">₪%s</string>
+
+    <!-- Record Detail Sheet -->
+    <string name="record_detail_date">Date</string>
+    <string name="record_detail_km">Mileage</string>
+    <string name="record_detail_cost">Cost</string>
+    <string name="record_detail_notes">Notes</string>
+    <string name="record_delete_confirm_title">Delete Record</string>
+    <string name="record_delete_confirm_message">Are you sure you want to delete this record?</string>
+
+    <!-- Documents Screen -->
+    <string name="documents_title">Car Documents</string>
+    <string name="document_type_insurance_compulsory">Compulsory Insurance</string>
+    <string name="document_type_insurance_comprehensive">Comprehensive Insurance</string>
+    <string name="document_type_vehicle_license">Vehicle License</string>
+    <string name="documents_add_photo">Add Document Photo</string>
+    <string name="documents_tap_to_replace">Tap photo to replace</string>
+
+    <!-- Test History Sheet -->
+    <string name="test_history_title">Test History</string>
+    <string name="test_history_empty">No test history yet.</string>
+
+    <!-- Reminders Screen -->
+    <string name="reminders_select_car">Select a car to manage reminders:</string>
+    <string name="reminders_no_cars">No cars. Add a car to set up reminders.</string>
+
+    <!-- Car Reminders Screen -->
+    <string name="car_reminders_title">Car Reminders</string>
+    <string name="reminder_type_test_expiry">Test Expiry</string>
+    <string name="reminder_type_insurance_compulsory">Compulsory Insurance</string>
+    <string name="reminder_type_insurance_comprehensive">Comprehensive Insurance</string>
+    <string name="reminder_type_service_date">Periodic Service</string>
+    <string name="reminder_days_before_label">Days before</string>
+    <string name="reminder_days_before_suffix">days before expiry</string>
+    <string name="reminder_save">Save Reminder Settings</string>
+
+    <!-- Post-car-creation Reminder Prompt -->
+    <string name="enable_reminders_prompt_title">Enable Reminders</string>
+    <string name="enable_reminders_prompt_subtitle">Want us to remind you before %1$s %2$s\'s test or insurance expires?</string>
+    <string name="enable_reminders_default">Enable Default Reminders</string>
+    <string name="enable_reminders_skip">Not Now</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_section_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_section_language">Language</string>
+    <string name="settings_language_current">Current Language</string>
+    <string name="settings_language_hebrew">Hebrew</string>
+    <string name="settings_language_coming_soon">English is coming soon</string>
+    <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_notifications_label">Notification Permission</string>
+    <string name="settings_notifications_active">Active and connected ✓</string>
+    <string name="settings_notifications_disabled">Disabled</string>
+    <string name="settings_notifications_enable">Enable Notifications</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_about_version">Version</string>
+    <string name="settings_about_developer">Developed by</string>
+    <string name="settings_about_developer_name">Hananel Sabag</string>
+
+    <!-- General -->
+    <string name="coming_soon">Coming Soon…</string>
+    <string name="content_description_car_photo">Car photo</string>
+    <string name="content_description_back">Back</string>
+    <string name="content_description_edit">Edit</string>
+    <string name="content_description_delete">Delete</string>
+</resources>
