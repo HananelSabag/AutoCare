@@ -393,7 +393,7 @@ private fun SettingsHero() {
             color = MaterialTheme.colorScheme.surface
         ) {
             Image(
-                painter = painterResource(R.mipmap.ic_launcher_round),
+                painter = painterResource(R.drawable.autocare_logo),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.size(56.dp)
