@@ -24,6 +24,17 @@
     <string name="screen_cars_empty_title">אין רכבים עדיין</string>
     <string name="screen_cars_empty_subtitle">הוסף את הרכב הראשון שלך ועקוב אחר כל הטיפולים במקום אחד</string>
     <string name="screen_cars_empty_cta">הוסף רכב</string>
+    <string name="car_pager_add_card_title">הוסף רכב</string>
+    <string name="car_pager_add_card_subtitle">לחץ להוספת הרכב הבא שלך</string>
+    <string name="car_pager_counter">%1$d מתוך %2$d</string>
+    <string name="car_pager_test_label">טסט</string>
+    <string name="car_pager_insurance_label">ביטוח</string>
+    <string name="car_pager_service_label">טיפול הבא</string>
+    <string name="car_pager_days_left">%d יום</string>
+    <string name="car_pager_expired">פג תוקף</string>
+    <string name="car_pager_today">היום</string>
+    <string name="car_pager_not_set">לא הוגדר</string>
+    <string name="screen_reminders_title">תזכורות</string>
     <string name="screen_settings_title">הגדרות</string>
 
     <!-- Car Card -->
@@ -51,14 +62,20 @@
     <string name="add_car_color_custom_hint">צבע אחר…</string>
     <string name="add_car_current_km">ק"מ נוכחי</string>
     <string name="add_car_test_expiry">תוקף טסט</string>
-    <string name="add_car_insurance_expiry">ביטוח חובה</string>
+    <string name="add_car_insurance_expiry">ביטוח</string>
     <string name="add_car_comprehensive_expiry">ביטוח מקיף</string>
     <string name="add_car_notes">הערות</string>
     <string name="add_car_save">שמור רכב</string>
 
+    <!-- Photo / file source picker -->
+    <string name="photo_option_camera">צלם תמונה</string>
+    <string name="photo_option_gallery">בחר מהגלריה</string>
+    <string name="photo_option_pdf">בחר PDF</string>
+
     <!-- Validation Errors -->
     <string name="error_field_required">שדה חובה</string>
     <string name="error_year_invalid">שנה לא תקינה (1900–2030)</string>
+    <string name="error_invalid_license_plate">לוחית רישוי לא תקינה (7–8 ספרות)</string>
 
     <!-- Date Picker -->
     <string name="date_not_set">לחץ לבחירת תאריך</string>
@@ -78,7 +95,8 @@
 
     <!-- Car Profile Screen -->
     <string name="car_profile_test_expiry">טסט</string>
-    <string name="car_profile_insurance_expiry">ביטוח חובה</string>
+    <string name="car_profile_insurance_expiry">ביטוח</string>
+    <string name="car_profile_service_status">טיפול תקופתי</string>
     <string name="car_profile_comprehensive_expiry">ביטוח מקיף</string>
     <string name="car_profile_color">צבע</string>
     <string name="car_profile_current_km">קילומטראז\'</string>
@@ -102,10 +120,16 @@
     <string name="car_profile_status_expired_short">פג!</string>
     <string name="car_profile_first_service_title">הוסף את הטיפול הראשון</string>
     <string name="car_profile_first_service_subtitle">סטטיסטיקות יופיעו לאחר הוספת 2 טיפולים</string>
+    <string name="car_profile_one_service_title">עוד טיפול אחד לסטטיסטיקות</string>
+    <string name="car_profile_one_service_subtitle">יש לך טיפול מתועד אחד. הוסף עוד אחד כדי לפתוח את הסטטיסטיקות</string>
+    <string name="car_profile_one_service_progress">1 מתוך 2 טיפולים</string>
+    <string name="car_profile_one_service_unlocks">מה יפתח:</string>
 
     <!-- Maintenance History Screen -->
     <string name="maintenance_history_title">היסטוריית טיפולים</string>
     <string name="maintenance_history_add">הוסף טיפול</string>
+    <string name="maintenance_history_subtitle_single">רשומה אחת</string>
+    <string name="maintenance_history_subtitle_plural">%d רשומות</string>
     <string name="maintenance_history_empty_title">אין טיפולים מתועדים</string>
     <string name="maintenance_history_empty_subtitle">לחץ על + להוספת הטיפול הראשון</string>
 
@@ -116,6 +140,7 @@
     <string name="record_type_maintenance">טיפול תקופתי</string>
     <string name="record_type_repair">תיקון</string>
     <string name="record_type_wear">בלאי</string>
+    <string name="record_type_upgrade">שדרוג</string>
     <string name="record_date">תאריך</string>
     <string name="record_description">תיאור</string>
     <string name="record_km">ק"מ בעת הטיפול</string>
@@ -126,6 +151,7 @@
     <string name="record_description_placeholder_maintenance">החלפת שמן, פילטרים, בדיקה כללית…</string>
     <string name="record_description_placeholder_repair">תיקון בלמים, החלפת חלק תקול…</string>
     <string name="record_description_placeholder_wear">החלפת צמיגים, בלמים, מצבר…</string>
+    <string name="record_description_placeholder_upgrade">שדרוג סטריאו, צביעה, ריפוד…</string>
     <string name="record_quick_suggestions_label">בחר במהירות</string>
     <!-- Quick suggestion chips — MAINTENANCE -->
     <string name="chip_oil_change">החלפת שמן</string>
@@ -145,6 +171,13 @@
     <string name="chip_battery_replacement">החלפת מצבר</string>
     <string name="chip_wipers_replacement">החלפת מגבים</string>
     <string name="chip_belts_replacement">החלפת רצועות</string>
+    <!-- Quick suggestion chips — UPGRADE -->
+    <string name="chip_audio_upgrade">שדרוג סטריאו</string>
+    <string name="chip_window_tinting">חישוך שמשות</string>
+    <string name="chip_suspension_upgrade">שדרוג מתלים</string>
+    <string name="chip_body_kit">ערכת גוף</string>
+    <string name="chip_paint_job">צביעה / ציפוי</string>
+    <string name="chip_performance_upgrade">שדרוג ביצועים</string>
     <string name="record_receipt_label">קבלה / תמונת חלק</string>
     <string name="record_receipt_add">הוסף קבלה או תמונת חלק</string>
     <string name="add_record_save">שמור טיפול</string>
@@ -162,11 +195,27 @@
     <!-- Documents Screen -->
     <string name="car_profile_documents_label">מסמכים</string>
     <string name="documents_title">מסמכי רכב</string>
-    <string name="document_type_insurance_compulsory">ביטוח חובה</string>
-    <string name="document_type_insurance_comprehensive">ביטוח מקיף</string>
-    <string name="document_type_vehicle_license">רישיון רכב</string>
-    <string name="documents_add_photo">הוסף תמונת מסמך</string>
-    <string name="documents_tap_to_replace">לחץ על התמונה להחלפה</string>
+    <string name="documents_section_test">טסט</string>
+    <string name="documents_section_insurance">ביטוח</string>
+    <string name="documents_expiry_label">תוקף</string>
+    <string name="documents_uploaded_on">הועלה ב-%s</string>
+    <string name="documents_no_record">לא הוגדר עדיין</string>
+    <string name="documents_edit_record">עדכן</string>
+    <string name="documents_attach_file">הוסף מסמך (אופציונלי)</string>
+    <string name="documents_file_attached">מסמך מצורף</string>
+    <string name="documents_replace_file">החלף מסמך</string>
+    <string name="documents_remove_file">הסר</string>
+    <string name="documents_history_button">היסטוריית מסמכים</string>
+    <string name="documents_save_record">שמור</string>
+    <string name="documents_sheet_title_test">עדכון טסט</string>
+    <string name="documents_sheet_title_insurance">עדכון ביטוח</string>
+    <string name="documents_history_title">היסטוריית מסמכים</string>
+    <string name="documents_history_empty_title">אין היסטוריית מסמכים</string>
+    <string name="documents_history_empty_subtitle">עדכון מסמכים יצור כאן היסטוריה</string>
+    <string name="documents_history_active_badge">פעיל</string>
+    <string name="documents_history_archived_badge">ארכיון</string>
+    <string name="documents_open_file">פתח</string>
+    <string name="documents_pdf_file">קובץ PDF</string>
 
     <!-- Test History Screen -->
     <string name="test_history_title">היסטוריית טסטים</string>
@@ -188,14 +237,25 @@
     <string name="test_record_delete_title">מחיקת רישום טסט</string>
     <string name="test_record_delete_message">האם אתה בטוח שברצונך למחוק רישום זה?</string>
 
-    <!-- Reminders Screen -->
+    <!-- Reminders Dashboard Screen -->
     <string name="reminders_select_car">בחר רכב לניהול תזכורות:</string>
     <string name="reminders_no_cars">אין רכבים. הוסף רכב כדי להגדיר תזכורות.</string>
+    <string name="reminders_dashboard_title">התראות</string>
+    <string name="reminders_section_urgent">דחוף</string>
+    <string name="reminders_section_soon">בקרוב</string>
+    <string name="reminders_section_ok">בסדר</string>
+    <string name="reminders_empty_title">אין התראות פעילות</string>
+    <string name="reminders_empty_subtitle">הפעל התראות מפרופיל הרכב כדי לקבל תזכורות לפני פקיעת תוקף</string>
+    <string name="reminders_item_days_left">עוד %d ימים</string>
+    <string name="reminders_item_expires_today">פג תוקף היום!</string>
+    <string name="reminders_item_expires_tomorrow">פג תוקף מחר</string>
+    <string name="reminders_item_expired">פג לפני %d ימים</string>
+    <string name="reminders_item_no_date">תאריך לא הוגדר</string>
 
     <!-- Car Reminders Screen -->
     <string name="car_reminders_title">תזכורות לרכב</string>
     <string name="reminder_type_test_expiry">תוקף טסט</string>
-    <string name="reminder_type_insurance_compulsory">ביטוח חובה</string>
+    <string name="reminder_type_insurance_compulsory">ביטוח</string>
     <string name="reminder_type_insurance_comprehensive">ביטוח מקיף</string>
     <string name="reminder_type_service_date">שירות תקופתי</string>
     <string name="reminder_days_before_label">ימים לפני</string>
@@ -214,10 +274,12 @@
     <string name="reminder_custom_window_suffix">ימים לפני</string>
 
     <!-- Post-car-creation Reminder Prompt -->
-    <string name="enable_reminders_prompt_title">הפעלת תזכורות</string>
-    <string name="enable_reminders_prompt_subtitle">רוצה שנזכיר לך לפני תפוגת הטסט והביטוח של %1$s %2$s?</string>
-    <string name="enable_reminders_default">הפעל תזכורות ברירת מחדל</string>
+    <string name="enable_reminders_prompt_title">הגדרת תזכורות</string>
+    <string name="enable_reminders_prompt_subtitle">רוצה שנזכיר לך לפני שתוקפי הטסט, הביטוח והטיפול של %1$s %2$s פגים?</string>
+    <string name="enable_reminders_explain">ברירת מחדל: התראה 60 יום לפני פקיעת הטסט, הביטוח, ולפני מועד הטיפול השנתי. ניתן לשנות בכל עת מפרופיל הרכב.</string>
+    <string name="enable_reminders_default">הפעל תזכורות</string>
     <string name="enable_reminders_skip">לא עכשיו</string>
+    <string name="enable_reminders_add_service">הוסף טיפול אחרון</string>
 
     <!-- Notifications -->
     <string name="notification_channel_name">תזכורות AutoCare</string>
@@ -237,6 +299,18 @@
     <string name="stats_last_service">טיפול אחרון</string>
     <string name="stats_spent_this_year">הוצאות השנה</string>
     <string name="stats_average_cost">ממוצע לטיפול</string>
+    <string name="stats_tap_hint">לחץ לפרטים ↗</string>
+
+    <!-- Statistics Bottom Sheet -->
+    <string name="stats_breakdown_title">פירוט לפי סוג</string>
+    <string name="stats_monthly_title">הוצאות לפי חודש</string>
+    <string name="stats_km_title">קילומטרים מתועדים</string>
+    <string name="stats_km_from_label">מ</string>
+    <string name="stats_km_to_label">עד</string>
+    <string name="stats_km_driven">%d ק"מ בין התאריכים</string>
+    <string name="stats_biggest_expense_title">ההוצאה הגדולה ביותר</string>
+    <string name="stats_no_monthly_data">אין נתוני עלות להצגה</string>
+    <string name="stats_records_count">%d רשומות</string>
 
     <!-- Settings Screen -->
     <string name="settings_section_theme">ערכת נושא</string>
@@ -254,22 +328,22 @@
     <string name="settings_notifications_active">פעיל ומחובר ✓</string>
     <string name="settings_notifications_disabled">כבויה</string>
     <string name="settings_notifications_enable">הפעל התראות</string>
-    <string name="settings_section_export">ייצוא נתונים</string>
-    <string name="settings_export_pdf">PDF</string>
-    <string name="settings_export_pdf_desc">ייצא דוח מפורט עם תמונות</string>
-    <string name="settings_export_excel">Excel / CSV</string>
-    <string name="settings_export_excel_desc">ייצא לגיליון אלקטרוני</string>
-    <string name="settings_export_json">JSON</string>
-    <string name="settings_export_json_desc">גיבוי מלא לייבוא עתידי</string>
+    <string name="settings_section_export">ייצוא וייבוא</string>
+    <string name="settings_export_pdf">ייצוא PDF</string>
+    <string name="settings_export_pdf_desc">דוח מפורט ויפה עם לוגו ותמונות</string>
+    <string name="settings_export_json">גיבוי JSON</string>
+    <string name="settings_export_json_desc">שמירה בתיקיית Downloads</string>
+    <string name="settings_import_json">ייבוא גיבוי</string>
+    <string name="settings_import_json_desc">שחזר נתונים מקובץ גיבוי קיים</string>
     <string name="settings_export_coming_soon">בקרוב</string>
     <string name="settings_section_about">אודות</string>
     <string name="settings_about_version">גרסה</string>
     <string name="settings_about_developer">פותח על ידי</string>
     <string name="settings_about_developer_name">חננאל סבג</string>
 
-    <!-- Export -->
+    <!-- Export / Import -->
     <string name="export_pdf_generating">מייצא PDF…</string>
-    <string name="export_json_generating">מייצא גיבוי…</string>
+    <string name="export_json_generating">שומר גיבוי…</string>
     <string name="export_error">שגיאה בייצוא. נסה שוב.</string>
     <string name="export_pick_car_title">בחר רכב לייצוא</string>
     <string name="export_no_cars">אין רכבים לייצוא</string>
@@ -283,6 +357,34 @@
     <string name="export_section_test_history">היסטוריית טסטים</string>
     <string name="export_total_cost">סה"כ: ₪%s</string>
     <string name="export_no_records">אין רשומות לייצוא</string>
+    <string name="export_json_saved">גיבוי נשמר ב-Downloads</string>
+    <string name="export_json_share">שתף</string>
+    <string name="import_json_loading">מייבא נתונים…</string>
+    <string name="import_success">יובאו %d רכבים בהצלחה</string>
+    <string name="import_error">שגיאה בייבוא. קובץ לא תקין.</string>
+
+    <!-- Image Crop Sheet -->
+    <string name="image_crop_title">כוון תמונה</string>
+    <string name="image_crop_hint">הזזה וצביטה לכיוון התמונה</string>
+    <string name="image_crop_confirm">אישור</string>
+    <string name="image_crop_saving">שומר…</string>
+
+    <!-- Car colors (keys stored in DB; these are display names per language) -->
+    <string name="color_white">לבן</string>
+    <string name="color_black">שחור</string>
+    <string name="color_gray">אפור</string>
+    <string name="color_silver">כסוף</string>
+    <string name="color_red">אדום</string>
+    <string name="color_blue">כחול</string>
+    <string name="color_green">ירוק</string>
+    <string name="color_yellow">צהוב</string>
+    <string name="color_orange">כתום</string>
+    <string name="color_brown">חום</string>
+    <string name="color_purple">סגול</string>
+    <string name="color_pink">ורוד</string>
+    <string name="color_beige">בז\'</string>
+    <string name="color_gold">זהב</string>
+    <string name="color_navy">נייבי</string>
 
     <!-- General -->
     <string name="coming_soon">בקרוב…</string>

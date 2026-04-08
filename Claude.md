@@ -35,7 +35,7 @@ These were discussed at length during planning. **Do not bring them up as sugges
 ### Things we explicitly REJECTED:
 - ❌ **No kilometer tracking outside of maintenance records.** Users will NOT be asked to update km regularly. Km is only entered when adding a maintenance record (because that's when you naturally see it). Don't suggest "daily km logging", "trip tracking", "odometer reminders", etc.
 - ❌ **No fuel tracking in v1.** It's deferred. Don't propose adding it. It forces user input on every refuel which contradicts the project philosophy.
-- ❌ **No horizontal scrolling anywhere.** It's a mobile anti-pattern. Use vertical scroll, tabs, or pagination instead. Don't suggest swipeable horizontal lists for primary content.
+- ❌ **No horizontal scrolling in nav bars or content lists.** It's a mobile anti-pattern for lists and menus. Exception: full-screen `HorizontalPager` with visible peek of next card is allowed where it's the primary UX (e.g. the Cars screen card catalog).
 - ❌ **No popups/AlertDialogs for input.** Use `ModalBottomSheet` for all user input flows. The ONLY exception is destructive confirmations (delete car, delete record) - those can use AlertDialog.
 - ❌ **No forced kilometer field on repairs/wear items.** Km is **required only for maintenance records** (oil change type). For repairs and wear items, km is optional.
 - ❌ **No rigid notification schedules.** Users get full freedom to add/edit/delete reminders, set specific times, set custom days-before. Don't hardcode "always notify 30 days before". Defaults are defaults, not laws.

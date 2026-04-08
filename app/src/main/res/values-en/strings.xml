@@ -24,6 +24,17 @@
     <string name="screen_cars_empty_title">No cars yet</string>
     <string name="screen_cars_empty_subtitle">Add your first car and track all maintenance in one place</string>
     <string name="screen_cars_empty_cta">Add Car</string>
+    <string name="car_pager_add_card_title">Add Car</string>
+    <string name="car_pager_add_card_subtitle">Tap to add your next car</string>
+    <string name="car_pager_counter">%1$d of %2$d</string>
+    <string name="car_pager_test_label">Test</string>
+    <string name="car_pager_insurance_label">Insurance</string>
+    <string name="car_pager_service_label">Next Service</string>
+    <string name="car_pager_days_left">%d days</string>
+    <string name="car_pager_expired">Expired</string>
+    <string name="car_pager_today">Today</string>
+    <string name="car_pager_not_set">Not set</string>
+    <string name="screen_reminders_title">Reminders</string>
     <string name="screen_settings_title">Settings</string>
 
     <!-- Car Card -->
@@ -51,14 +62,20 @@
     <string name="add_car_color_custom_hint">Other color…</string>
     <string name="add_car_current_km">Current KM</string>
     <string name="add_car_test_expiry">Test Expiry</string>
-    <string name="add_car_insurance_expiry">Compulsory Insurance</string>
+    <string name="add_car_insurance_expiry">Insurance</string>
     <string name="add_car_comprehensive_expiry">Comprehensive Insurance</string>
     <string name="add_car_notes">Notes</string>
     <string name="add_car_save">Save Car</string>
 
+    <!-- Photo / file source picker -->
+    <string name="photo_option_camera">Take Photo</string>
+    <string name="photo_option_gallery">Choose from Gallery</string>
+    <string name="photo_option_pdf">Choose PDF</string>
+
     <!-- Validation Errors -->
     <string name="error_field_required">Required field</string>
     <string name="error_year_invalid">Invalid year (1900–2030)</string>
+    <string name="error_invalid_license_plate">Invalid license plate (7–8 digits)</string>
 
     <!-- Date Picker -->
     <string name="date_not_set">Tap to select date</string>
@@ -78,7 +95,8 @@
 
     <!-- Car Profile Screen -->
     <string name="car_profile_test_expiry">Test</string>
-    <string name="car_profile_insurance_expiry">Compulsory Insurance</string>
+    <string name="car_profile_insurance_expiry">Insurance</string>
+    <string name="car_profile_service_status">Periodic Service</string>
     <string name="car_profile_comprehensive_expiry">Comprehensive Insurance</string>
     <string name="car_profile_color">Color</string>
     <string name="car_profile_current_km">Mileage</string>
@@ -102,10 +120,16 @@
     <string name="car_profile_status_expired_short">Exp!</string>
     <string name="car_profile_first_service_title">Add Your First Service</string>
     <string name="car_profile_first_service_subtitle">Stats appear after adding 2 service records</string>
+    <string name="car_profile_one_service_title">One More Service for Stats</string>
+    <string name="car_profile_one_service_subtitle">You have 1 service recorded. Add one more to unlock statistics</string>
+    <string name="car_profile_one_service_progress">1 of 2 services</string>
+    <string name="car_profile_one_service_unlocks">Unlocks:</string>
 
     <!-- Maintenance History Screen -->
     <string name="maintenance_history_title">Service History</string>
     <string name="maintenance_history_add">Add Service</string>
+    <string name="maintenance_history_subtitle_single">1 record</string>
+    <string name="maintenance_history_subtitle_plural">%d records</string>
     <string name="maintenance_history_empty_title">No services recorded</string>
     <string name="maintenance_history_empty_subtitle">Tap + to add your first record</string>
 
@@ -116,6 +140,7 @@
     <string name="record_type_maintenance">Periodic Service</string>
     <string name="record_type_repair">Repair</string>
     <string name="record_type_wear">Wear Item</string>
+    <string name="record_type_upgrade">Upgrade</string>
     <string name="record_date">Date</string>
     <string name="record_description">Description</string>
     <string name="record_km">KM at Service</string>
@@ -126,6 +151,7 @@
     <string name="record_description_placeholder_maintenance">Oil change, filters, general inspection…</string>
     <string name="record_description_placeholder_repair">Brake repair, faulty part replacement…</string>
     <string name="record_description_placeholder_wear">Tires, brakes, battery, wipers…</string>
+    <string name="record_description_placeholder_upgrade">Stereo upgrade, paint job, interior…</string>
     <string name="record_quick_suggestions_label">Quick select</string>
     <!-- Quick suggestion chips — MAINTENANCE -->
     <string name="chip_oil_change">Oil Change</string>
@@ -145,6 +171,13 @@
     <string name="chip_battery_replacement">Battery</string>
     <string name="chip_wipers_replacement">Wipers</string>
     <string name="chip_belts_replacement">Belt Replacement</string>
+    <!-- Quick suggestion chips — UPGRADE -->
+    <string name="chip_audio_upgrade">Audio Upgrade</string>
+    <string name="chip_window_tinting">Window Tinting</string>
+    <string name="chip_suspension_upgrade">Suspension Upgrade</string>
+    <string name="chip_body_kit">Body Kit</string>
+    <string name="chip_paint_job">Paint / Wrap</string>
+    <string name="chip_performance_upgrade">Performance Upgrade</string>
     <string name="record_receipt_label">Receipt / Part Photo</string>
     <string name="record_receipt_add">Add receipt or part photo</string>
     <string name="add_record_save">Save Record</string>
@@ -162,11 +195,27 @@
     <!-- Documents Screen -->
     <string name="car_profile_documents_label">Documents</string>
     <string name="documents_title">Car Documents</string>
-    <string name="document_type_insurance_compulsory">Compulsory Insurance</string>
-    <string name="document_type_insurance_comprehensive">Comprehensive Insurance</string>
-    <string name="document_type_vehicle_license">Vehicle License</string>
-    <string name="documents_add_photo">Add Document Photo</string>
-    <string name="documents_tap_to_replace">Tap photo to replace</string>
+    <string name="documents_section_test">Test</string>
+    <string name="documents_section_insurance">Insurance</string>
+    <string name="documents_expiry_label">Expiry</string>
+    <string name="documents_uploaded_on">Uploaded on %s</string>
+    <string name="documents_no_record">Not set yet</string>
+    <string name="documents_edit_record">Update</string>
+    <string name="documents_attach_file">Add document (optional)</string>
+    <string name="documents_file_attached">Document attached</string>
+    <string name="documents_replace_file">Replace document</string>
+    <string name="documents_remove_file">Remove</string>
+    <string name="documents_history_button">Document History</string>
+    <string name="documents_save_record">Save</string>
+    <string name="documents_sheet_title_test">Update Test</string>
+    <string name="documents_sheet_title_insurance">Update Insurance</string>
+    <string name="documents_history_title">Document History</string>
+    <string name="documents_history_empty_title">No document history</string>
+    <string name="documents_history_empty_subtitle">Updating documents will create history here</string>
+    <string name="documents_history_active_badge">Active</string>
+    <string name="documents_history_archived_badge">Archived</string>
+    <string name="documents_open_file">Open</string>
+    <string name="documents_pdf_file">PDF File</string>
 
     <!-- Test History Screen -->
     <string name="test_history_title">Test History</string>
@@ -188,14 +237,25 @@
     <string name="test_record_delete_title">Delete Test Record</string>
     <string name="test_record_delete_message">Are you sure you want to delete this record?</string>
 
-    <!-- Reminders Screen -->
+    <!-- Reminders Dashboard Screen -->
     <string name="reminders_select_car">Select a car to manage reminders:</string>
     <string name="reminders_no_cars">No cars. Add a car to set up reminders.</string>
+    <string name="reminders_dashboard_title">Reminders</string>
+    <string name="reminders_section_urgent">Urgent</string>
+    <string name="reminders_section_soon">Coming Up</string>
+    <string name="reminders_section_ok">All Good</string>
+    <string name="reminders_empty_title">No active reminders</string>
+    <string name="reminders_empty_subtitle">Enable reminders from a car profile to get notified before expiry</string>
+    <string name="reminders_item_days_left">%d days left</string>
+    <string name="reminders_item_expires_today">Expires today!</string>
+    <string name="reminders_item_expires_tomorrow">Expires tomorrow</string>
+    <string name="reminders_item_expired">Expired %d days ago</string>
+    <string name="reminders_item_no_date">Date not set</string>
 
     <!-- Car Reminders Screen -->
     <string name="car_reminders_title">Car Reminders</string>
     <string name="reminder_type_test_expiry">Test Expiry</string>
-    <string name="reminder_type_insurance_compulsory">Compulsory Insurance</string>
+    <string name="reminder_type_insurance_compulsory">Insurance</string>
     <string name="reminder_type_insurance_comprehensive">Comprehensive Insurance</string>
     <string name="reminder_type_service_date">Periodic Service</string>
     <string name="reminder_days_before_label">Days before</string>
@@ -214,10 +274,12 @@
     <string name="reminder_custom_window_suffix">days before</string>
 
     <!-- Post-car-creation Reminder Prompt -->
-    <string name="enable_reminders_prompt_title">Enable Reminders</string>
-    <string name="enable_reminders_prompt_subtitle">Want us to remind you before %1$s %2$s\'s test or insurance expires?</string>
-    <string name="enable_reminders_default">Enable Default Reminders</string>
+    <string name="enable_reminders_prompt_title">Set Up Reminders</string>
+    <string name="enable_reminders_prompt_subtitle">Want reminders before %1$s %2$s\'s test, insurance, and annual service expire?</string>
+    <string name="enable_reminders_explain">Default: alert 60 days before test expiry, insurance expiry, and annual service date. You can adjust this anytime from the car profile.</string>
+    <string name="enable_reminders_default">Enable Reminders</string>
     <string name="enable_reminders_skip">Not Now</string>
+    <string name="enable_reminders_add_service">Add Last Service Record</string>
 
     <!-- Notifications -->
     <string name="notification_channel_name">AutoCare Reminders</string>
@@ -237,6 +299,18 @@
     <string name="stats_last_service">Last Service</string>
     <string name="stats_spent_this_year">Spent This Year</string>
     <string name="stats_average_cost">Avg. Cost</string>
+    <string name="stats_tap_hint">Tap for details ↗</string>
+
+    <!-- Statistics Bottom Sheet -->
+    <string name="stats_breakdown_title">Breakdown by Type</string>
+    <string name="stats_monthly_title">Monthly Spending</string>
+    <string name="stats_km_title">Mileage Recorded</string>
+    <string name="stats_km_from_label">From</string>
+    <string name="stats_km_to_label">To</string>
+    <string name="stats_km_driven">%d km covered</string>
+    <string name="stats_biggest_expense_title">Biggest Expense</string>
+    <string name="stats_no_monthly_data">No cost data to display</string>
+    <string name="stats_records_count">%d records</string>
 
     <!-- Settings Screen -->
     <string name="settings_section_theme">Theme</string>
@@ -257,8 +331,6 @@
     <string name="settings_section_export">Export Data</string>
     <string name="settings_export_pdf">PDF</string>
     <string name="settings_export_pdf_desc">Export detailed report with photos</string>
-    <string name="settings_export_excel">Excel / CSV</string>
-    <string name="settings_export_excel_desc">Export to spreadsheet</string>
     <string name="settings_export_json">JSON</string>
     <string name="settings_export_json_desc">Full backup for future import</string>
     <string name="settings_export_coming_soon">Coming soon</string>
@@ -283,6 +355,29 @@
     <string name="export_section_test_history">Test History</string>
     <string name="export_total_cost">Total: ₪%s</string>
     <string name="export_no_records">No records to export</string>
+
+    <!-- Image Crop Sheet -->
+    <string name="image_crop_title">Frame Photo</string>
+    <string name="image_crop_hint">Pinch to zoom · drag to reposition</string>
+    <string name="image_crop_confirm">Confirm</string>
+    <string name="image_crop_saving">Saving…</string>
+
+    <!-- Car colors (keys stored in DB; these are display names per language) -->
+    <string name="color_white">White</string>
+    <string name="color_black">Black</string>
+    <string name="color_gray">Gray</string>
+    <string name="color_silver">Silver</string>
+    <string name="color_red">Red</string>
+    <string name="color_blue">Blue</string>
+    <string name="color_green">Green</string>
+    <string name="color_yellow">Yellow</string>
+    <string name="color_orange">Orange</string>
+    <string name="color_brown">Brown</string>
+    <string name="color_purple">Purple</string>
+    <string name="color_pink">Pink</string>
+    <string name="color_beige">Beige</string>
+    <string name="color_gold">Gold</string>
+    <string name="color_navy">Navy</string>
 
     <!-- General -->
     <string name="coming_soon">Coming Soon…</string>

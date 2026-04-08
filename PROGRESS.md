@@ -144,22 +144,21 @@ A portfolio-quality Android app for tracking personal car maintenance. Hebrew-fi
 
 ## Current State
 
-**What works (compile-verified, 0 warnings):**
+**What works (compile-verified):**
 - Full car CRUD (add with dropdowns, view, edit, delete)
-- Car profile with hero image, status banner (טסט + ביטוח חובה only), quick stats, action buttons
+- Car profile with full-bleed hero, status banner (טסט + ביטוח + שירות תקופתי), 3-tile action row
 - Maintenance history with full CRUD, left accent bar, type icons, receipt photo attach + thumbnail in detail
-- Test history with full CRUD, pass/fail badges, certificate photo attach + thumbnail in detail
-- Reminders: טסט + ביטוח חובה + שירות תקופתי only (comprehensive removed)
-- Test expiry notification appends "אל תשכח להביא תעודת ביטוח"
-- Documents screen: 2 doc types (ביטוח חובה, רישיון רכב), full-width thumbnails, icon badges
-- Post-car-creation reminder prompt
-- Settings: theme switching (persists), language switching (AppCompatDelegate), notification permission, export section (UI), version info
+- Documents screen: one card per type (TEST/INSURANCE), editable expiry + optional file, `VehicleRecordHistoryScreen`
+- Reminders dashboard (`RemindersScreen` → per-car `CarRemindersScreen`): urgency colors, countdown chips, animated expand/collapse, escalation schedule
+- Settings: theme switching (persists), language switching (system/iw/en), notification permission, export section (UI placeholder), version info
 - Splash screen
-- Navigation: Cars → Car Profile → Maintenance History / Test History / Documents / Car Reminders
+- Navigation: Cars (HorizontalPager) → Car Profile → Maintenance History / Documents / Car Reminders / VehicleRecordHistory
 - Notification permission asked once on first launch (bottom sheet)
+- Export: PDF + JSON functional (`ExportViewModel`, `PdfExporter`, `JsonExporter`); Excel coming soon
 
-**Coming Soon (UI placeholder exists in Settings):**
-- Export: PDF, Excel, JSON
+**Intentionally removed / no UI:**
+- `TestHistoryScreen` — deleted. `TestRecord` entity + DB table kept for export only. No UI to add new test records.
+- `CarDocument` entity — removed entirely. Replaced by `VehicleRecord`. All related files (`CarDocumentDao`, `CarDocumentRepositoryImpl`, `CarDocumentRepository`, `CarDocument`) deleted.
 
 **WorkManager:** 12-hour periodic check (`ReminderCheckWorker`) with escalation schedule: 60d, 30d, weekly (9/16/23), then every run in last 7 days (≈twice daily). SERVICE_DATE uses last MAINTENANCE record + 365d.
 
@@ -191,12 +190,35 @@ A portfolio-quality Android app for tracking personal car maintenance. Hebrew-fi
 
 ---
 
+### Phase 10 — Documents Overhaul + Car Profile Restructure
+
+- **VehicleRecord** entity (new table `vehicle_records`): `type` (TEST/INSURANCE), `expiryDate`, `fileUri?`, `isActive`, `createdAt`
+- **CarDocument removed** from DB — replaced by VehicleRecord
+- **AppDatabase** bumped v6 → v7
+- **CarDocumentsScreen** fully rewritten: one card per type (TEST/INSURANCE), editable expiry + optional file attach, "היסטוריית מסמכים" button
+- **VehicleRecordHistoryScreen**: full list of all records with active/archived badges
+- **CarProfileScreen**: Test History button removed, 3-tile action row (Maintenance, Documents, Reminders)
+- **StatusBanner**: now shows 3 mini-cards — Test, Insurance, Periodic Service (last MAINTENANCE + 365d)
+- **CarProfileViewModel**: `nextServiceDueMs` StateFlow derived from last MAINTENANCE record
+- **ReminderType**: `INSURANCE_COMPULSORY_EXPIRY` → `INSURANCE_EXPIRY`
+- **Navigation**: `TestHistory` route replaced by `VehicleRecordHistory`
+- **strings.xml**: "ביטוח חובה" → "ביטוח" across all labels; all new document strings added
+
+### Phase 11 — CarsScreen Overhaul + UI Polish
+
+- **CarsScreen**: `LazyColumn` replaced by `HorizontalPager` card catalog. `CarPager.kt` in `presentation/components/`. Cards are large, full-bleed with photo hero + gradient scrim.
+- **RemindersScreen**: fully rewritten as a dashboard — `RemindersDashboardViewModel` drives a per-car summary view. Each car row shows urgency chip across all reminder types.
+- **MaintenanceRecordCard**: upgraded to `ElevatedCard`, receipt thumbnail shown inline, `IntrinsicSize.Min` for left accent bar alignment.
+- **OneMoreServiceCtaCard**: needs design upgrade (currently too basic — progress indicator + stats teaser planned).
+- **CarRemindersScreen**: functional, design polish pass pending.
+
 ## What's Next (Priority Order)
 
-1. **Export** — PDF (beautiful with logo + data), Excel, JSON backup/restore
-2. **Proper DB migrations** — replace `fallbackToDestructiveMigration()` before release (DB at version 4)
-3. **Statistics deep-dive** — cost per km chart, most common repair type, spending trend
-4. **Polish pass** — add `windowSoftInputMode` adjustResize if needed, review Documents screen for visual upgrade
+1. **OneMoreServiceCtaCard** design upgrade — progress teaser with LinearProgressIndicator
+2. **CarRemindersScreen** design polish pass
+3. **Excel export** — PDF + JSON done, Excel remaining
+4. **Proper DB migrations** — replace `fallbackToDestructiveMigration()` before release (DB at version 7)
+5. **Statistics deep-dive** — cost per km chart, most common repair type, spending trend
 
 ---
 
@@ -215,7 +237,7 @@ A portfolio-quality Android app for tracking personal car maintenance. Hebrew-fi
 | Kotlin | 2.0.21 | Language |
 | Compose BOM | 2024.12.01 | UI |
 | Hilt | 2.51.1 | DI |
-| Room | 2.6.1 | Local DB (v6) |
+| Room | 2.6.1 | Local DB (v7) |
 | Navigation Compose | 2.8.5 | Navigation |
 | DataStore | 1.1.1 | Preferences |
 | WorkManager | 2.9.1 | Background tasks |
