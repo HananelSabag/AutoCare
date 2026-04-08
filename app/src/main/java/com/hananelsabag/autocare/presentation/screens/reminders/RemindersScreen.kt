@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,12 +20,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -59,13 +60,16 @@ import com.hananelsabag.autocare.presentation.theme.StatusYellow
 import com.hananelsabag.autocare.presentation.theme.StatusYellowContainer
 import com.hananelsabag.autocare.util.StatusLevel
 
+private val CARD_HEIGHT = 80.dp
+private val PHOTO_WIDTH = 80.dp
+private val ACCENT_BAR_WIDTH = 4.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RemindersScreen(onCarClick: (Int) -> Unit) {
     val viewModel = hiltViewModel<RemindersDashboardViewModel>()
     val items by viewModel.items.collectAsState()
 
-    // Partition into sections by urgency
     val urgent = items.filter {
         it.level == StatusLevel.EXPIRED || it.level == StatusLevel.RED
     }.sortedBy { it.daysLeft ?: Long.MAX_VALUE }
@@ -81,6 +85,8 @@ fun RemindersScreen(onCarClick: (Int) -> Unit) {
     val unknown = items.filter {
         it.level == StatusLevel.UNKNOWN
     }
+
+    val allGood = urgent.isEmpty() && soon.isEmpty() && ok.isNotEmpty()
 
     Scaffold(
         topBar = {
@@ -98,43 +104,49 @@ fun RemindersScreen(onCarClick: (Int) -> Unit) {
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (allGood) {
+                    item {
+                        AllGoodBanner()
+                    }
+                }
+
                 if (urgent.isNotEmpty()) {
                     item {
                         SectionHeader(
                             title = stringResource(R.string.reminders_section_urgent),
-                            color = StatusRed
+                            color = StatusRed,
+                            count = urgent.size
                         )
                     }
                     items(urgent, key = { "${it.car.id}_${it.type}" }) { item ->
                         ReminderDashboardCard(item = item, onClick = { onCarClick(item.car.id) })
                     }
-                    item { Spacer(Modifier.height(4.dp)) }
                 }
 
                 if (soon.isNotEmpty()) {
                     item {
                         SectionHeader(
                             title = stringResource(R.string.reminders_section_soon),
-                            color = StatusYellow
+                            color = StatusYellow,
+                            count = soon.size
                         )
                     }
                     items(soon, key = { "${it.car.id}_${it.type}" }) { item ->
                         ReminderDashboardCard(item = item, onClick = { onCarClick(item.car.id) })
                     }
-                    item { Spacer(Modifier.height(4.dp)) }
                 }
 
                 if (ok.isNotEmpty()) {
                     item {
                         SectionHeader(
                             title = stringResource(R.string.reminders_section_ok),
-                            color = StatusGreen
+                            color = StatusGreen,
+                            count = ok.size
                         )
                     }
                     items(ok, key = { "${it.car.id}_${it.type}" }) { item ->
                         ReminderDashboardCard(item = item, onClick = { onCarClick(item.car.id) })
                     }
-                    item { Spacer(Modifier.height(4.dp)) }
                 }
 
                 if (unknown.isNotEmpty()) {
@@ -148,11 +160,48 @@ fun RemindersScreen(onCarClick: (Int) -> Unit) {
 }
 
 @Composable
-private fun SectionHeader(title: String, color: Color) {
+private fun AllGoodBanner() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = StatusGreenContainer,
+        shape = MaterialTheme.shapes.large
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.CheckCircle,
+                contentDescription = null,
+                tint = StatusGreen,
+                modifier = Modifier.size(24.dp)
+            )
+            Column {
+                Text(
+                    text = stringResource(R.string.reminders_all_good_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = StatusGreen
+                )
+                Text(
+                    text = stringResource(R.string.reminders_all_good_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = StatusGreen.copy(alpha = 0.75f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String, color: Color, count: Int) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(vertical = 4.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Box(
             modifier = Modifier
@@ -164,6 +213,23 @@ private fun SectionHeader(title: String, color: Color) {
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
             color = color
+        )
+        Surface(
+            color = color.copy(alpha = 0.12f),
+            shape = CircleShape
+        ) {
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = color,
+                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+            )
+        }
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = color.copy(alpha = 0.25f),
+            thickness = 1.dp
         )
     }
 }
@@ -197,20 +263,20 @@ private fun ReminderDashboardCard(
 
     ElevatedCard(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(CARD_HEIGHT),
         shape = MaterialTheme.shapes.large,
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
+            modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left accent bar
+            // Colored accent bar (start edge)
             Box(
                 modifier = Modifier
-                    .width(5.dp)
+                    .width(ACCENT_BAR_WIDTH)
                     .fillMaxHeight()
                     .background(accentColor)
             )
@@ -218,7 +284,7 @@ private fun ReminderDashboardCard(
             // Car photo thumbnail
             Box(
                 modifier = Modifier
-                    .width(72.dp)
+                    .width(PHOTO_WIDTH)
                     .fillMaxHeight()
             ) {
                 if (item.car.photoUri != null) {
@@ -228,13 +294,13 @@ private fun ReminderDashboardCard(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
-                    // Subtle gradient for readability
+                    // Scrim for readability
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(
                                 Brush.horizontalGradient(
-                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.15f))
+                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.1f))
                                 )
                             )
                     )
@@ -254,11 +320,12 @@ private fun ReminderDashboardCard(
                 }
             }
 
-            // Main content
+            // Car name + reminder type
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                    .padding(horizontal = 14.dp),
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = "${item.car.make} ${item.car.model}",
@@ -268,21 +335,22 @@ private fun ReminderDashboardCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(3.dp))
+                Spacer(Modifier.height(4.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(
                         imageVector = item.type.iconVector(),
                         contentDescription = null,
-                        modifier = Modifier.size(12.dp),
+                        modifier = Modifier.size(13.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = stringResource(item.type.labelRes()),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
                     )
                 }
             }
@@ -290,7 +358,7 @@ private fun ReminderDashboardCard(
             // Days badge
             Surface(
                 color = badgeContainerColor,
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.small,
                 modifier = Modifier.padding(end = 14.dp)
             ) {
                 Text(

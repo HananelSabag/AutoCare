@@ -246,20 +246,20 @@ private fun CarPagerCard(car: Car, nextServiceDueMs: Long?, onClick: () -> Unit)
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(0.56f)
-                    .padding(horizontal = 18.dp)
-                    .padding(top = 16.dp, bottom = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 18.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 // License plate + KM row
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     IsraeliLicensePlate(plate = car.licensePlate)
                     if (car.currentKm != null) {
                         Text(
                             text = stringResource(R.string.car_card_km_format, car.currentKm.toString()),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -267,7 +267,7 @@ private fun CarPagerCard(car: Car, nextServiceDueMs: Long?, onClick: () -> Unit)
                 }
 
                 // ── Status progress bars ──────────────────────────────
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     car.testExpiryDate?.let { expiry ->
                         StatusProgressRow(
                             label = stringResource(R.string.car_pager_test_label),
@@ -316,19 +316,20 @@ private fun StatusProgressRow(label: String, expiryMs: Long) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(56.dp)
+            modifier = Modifier.width(76.dp)
         )
         LinearProgressIndicator(
             progress = { progress },
             modifier = Modifier
                 .weight(1f)
-                .height(6.dp)
+                .height(10.dp)
                 .clip(RoundedCornerShape(50)),
             color = barColor,
             trackColor = barColor.copy(alpha = 0.15f),
@@ -336,10 +337,10 @@ private fun StatusProgressRow(label: String, expiryMs: Long) {
         )
         Text(
             text = daysLabel,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
             color = barColor,
-            modifier = Modifier.width(52.dp),
+            modifier = Modifier.width(64.dp),
             textAlign = TextAlign.End,
             maxLines = 1
         )
