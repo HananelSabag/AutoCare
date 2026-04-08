@@ -5,21 +5,21 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.hananelsabag.autocare.data.local.dao.CarDao
-import com.hananelsabag.autocare.data.local.dao.CarDocumentDao
 import com.hananelsabag.autocare.data.local.dao.MaintenanceRecordDao
 import com.hananelsabag.autocare.data.local.dao.ReminderDao
 import com.hananelsabag.autocare.data.local.dao.TestRecordDao
+import com.hananelsabag.autocare.data.local.dao.VehicleRecordDao
 import com.hananelsabag.autocare.data.local.database.AppDatabase
-import com.hananelsabag.autocare.data.repository.CarDocumentRepositoryImpl
 import com.hananelsabag.autocare.data.repository.CarRepositoryImpl
 import com.hananelsabag.autocare.data.repository.MaintenanceRecordRepositoryImpl
 import com.hananelsabag.autocare.data.repository.ReminderRepositoryImpl
 import com.hananelsabag.autocare.data.repository.TestRecordRepositoryImpl
-import com.hananelsabag.autocare.domain.repository.CarDocumentRepository
+import com.hananelsabag.autocare.data.repository.VehicleRecordRepositoryImpl
 import com.hananelsabag.autocare.domain.repository.CarRepository
 import com.hananelsabag.autocare.domain.repository.MaintenanceRecordRepository
 import com.hananelsabag.autocare.domain.repository.ReminderRepository
 import com.hananelsabag.autocare.domain.repository.TestRecordRepository
+import com.hananelsabag.autocare.domain.repository.VehicleRecordRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -54,10 +54,10 @@ object DatabaseModule {
     fun provideReminderDao(db: AppDatabase): ReminderDao = db.reminderDao()
 
     @Provides
-    fun provideCarDocumentDao(db: AppDatabase): CarDocumentDao = db.carDocumentDao()
+    fun provideTestRecordDao(db: AppDatabase): TestRecordDao = db.testRecordDao()
 
     @Provides
-    fun provideTestRecordDao(db: AppDatabase): TestRecordDao = db.testRecordDao()
+    fun provideVehicleRecordDao(db: AppDatabase): VehicleRecordDao = db.vehicleRecordDao()
 
     @Provides
     @Singleton
@@ -73,9 +73,9 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideCarDocumentRepository(impl: CarDocumentRepositoryImpl): CarDocumentRepository = impl
+    fun provideTestRecordRepository(impl: TestRecordRepositoryImpl): TestRecordRepository = impl
 
     @Provides
     @Singleton
-    fun provideTestRecordRepository(impl: TestRecordRepositoryImpl): TestRecordRepository = impl
+    fun provideVehicleRecordRepository(impl: VehicleRecordRepositoryImpl): VehicleRecordRepository = impl
 }

@@ -5,13 +5,13 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-enum class DocumentType {
-    INSURANCE_COMPULSORY,
-    VEHICLE_LICENSE
+enum class VehicleRecordType {
+    TEST,
+    INSURANCE
 }
 
 @Entity(
-    tableName = "car_documents",
+    tableName = "vehicle_records",
     foreignKeys = [
         ForeignKey(
             entity = Car::class,
@@ -22,10 +22,12 @@ enum class DocumentType {
     ],
     indices = [Index("carId")]
 )
-data class CarDocument(
+data class VehicleRecord(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val carId: Int,
-    val type: DocumentType,
-    val fileUri: String,
+    val type: VehicleRecordType,
+    val expiryDate: Long,
+    val fileUri: String? = null,
+    val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis()
 )

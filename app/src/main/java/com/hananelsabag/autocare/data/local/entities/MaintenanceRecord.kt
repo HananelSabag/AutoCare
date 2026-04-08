@@ -5,7 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-enum class RecordType { MAINTENANCE, REPAIR, WEAR }
+enum class RecordType { MAINTENANCE, REPAIR, WEAR, UPGRADE }
 
 @Entity(
     tableName = "maintenance_records",

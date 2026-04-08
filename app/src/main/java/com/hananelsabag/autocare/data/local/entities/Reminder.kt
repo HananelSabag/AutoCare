@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 
 enum class ReminderType {
     TEST_EXPIRY,
-    INSURANCE_COMPULSORY_EXPIRY,
+    INSURANCE_EXPIRY,
     SERVICE_DATE
 }
 
