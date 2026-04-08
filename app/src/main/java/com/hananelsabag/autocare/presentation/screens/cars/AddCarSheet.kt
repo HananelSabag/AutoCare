@@ -69,10 +69,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.hananelsabag.autocare.R
@@ -107,17 +113,51 @@ private val CAR_COLOR_OPTIONS = listOf(
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Auto-formats a license plate as the user types.
- * 7 digits → XX-XXX-XX, 8 digits → XXX-XX-XXX (both Israeli plate formats).
+ * Formats raw digit string (no dashes) into Israeli license plate display format.
+ * 7 digits → XX-XXX-XX, 8 digits → XXX-XX-XXX
  */
-private fun formatLicensePlate(input: String): String {
-    val digits = input.filter { it.isDigit() }.take(8)
-    return when (digits.length) {
-        in 0..2 -> digits
-        in 3..5 -> "${digits.substring(0, 2)}-${digits.substring(2)}"
-        in 6..7 -> "${digits.substring(0, 2)}-${digits.substring(2, 5)}-${digits.substring(5)}"
-        8       -> "${digits.substring(0, 3)}-${digits.substring(3, 5)}-${digits.substring(5, 8)}"
-        else    -> digits
+private fun formatPlateDigits(digits: String): String = when (digits.length) {
+    in 0..2 -> digits
+    in 3..5 -> "${digits.substring(0, 2)}-${digits.substring(2)}"
+    in 6..7 -> "${digits.substring(0, 2)}-${digits.substring(2, 5)}-${digits.substring(5)}"
+    8       -> "${digits.substring(0, 3)}-${digits.substring(3, 5)}-${digits.substring(5, 8)}"
+    else    -> digits
+}
+
+/**
+ * VisualTransformation that displays raw digits as a formatted Israeli license plate.
+ * The underlying value stays as digits-only; dashes are visual-only.
+ * Also forces LTR direction so the plate renders correctly in an RTL layout.
+ */
+private object LicensePlateVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val digits = text.text.filter { it.isDigit() }.take(8)
+        val formatted = formatPlateDigits(digits)
+
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                if (formatted.isEmpty()) return 0
+                var digitsSeen = 0
+                for (i in formatted.indices) {
+                    if (formatted[i] != '-') {
+                        if (digitsSeen == offset) return i
+                        digitsSeen++
+                    }
+                }
+                return formatted.length
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                if (formatted.isEmpty()) return 0
+                var digitCount = 0
+                for (i in 0 until minOf(offset, formatted.length)) {
+                    if (formatted[i] != '-') digitCount++
+                }
+                return minOf(digitCount, digits.length)
+            }
+        }
+
+        return TransformedText(AnnotatedString(formatted), offsetMapping)
     }
 }
 
@@ -476,10 +516,12 @@ fun AddCarSheetContent(
             )
             CarFormField(
                 value = viewModel.licensePlate,
-                onValueChange = { viewModel.licensePlate = formatLicensePlate(it) },
+                onValueChange = { viewModel.licensePlate = it.filter { c -> c.isDigit() }.take(8) },
                 label = stringResource(R.string.add_car_license_plate),
                 error = viewModel.licensePlateError,
                 keyboardType = KeyboardType.Number,
+                visualTransformation = LicensePlateVisualTransformation,
+                textStyle = TextStyle(textDirection = TextDirection.Ltr),
                 modifier = Modifier.weight(1.6f)
             )
         }
@@ -716,13 +758,17 @@ private fun CarFormField(
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
     maxLines: Int = 1,
-    minLines: Int = 1
+    minLines: Int = 1,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    textStyle: TextStyle = TextStyle.Default
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
         isError = error != null,
+        visualTransformation = visualTransformation,
+        textStyle = textStyle,
         supportingText = error?.let { err ->
             {
                 Text(

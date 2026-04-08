@@ -76,7 +76,7 @@ class AddCarViewModel @Inject constructor(
                 make = car.make
                 model = car.model
                 year = car.year.toString()
-                licensePlate = car.licensePlate
+                licensePlate = car.licensePlate.filter { it.isDigit() }
                 color = car.color ?: ""
                 photoUri = car.photoUri
                 currentKm = car.currentKm?.toString() ?: ""
@@ -117,7 +117,16 @@ class AddCarViewModel @Inject constructor(
                 make = make.trim(),
                 model = model.trim(),
                 year = year.toInt(),
-                licensePlate = licensePlate.trim().uppercase(),
+                licensePlate = run {
+                    val d = licensePlate.filter { it.isDigit() }
+                    when (d.length) {
+                        in 0..2 -> d
+                        in 3..5 -> "${d.substring(0, 2)}-${d.substring(2)}"
+                        in 6..7 -> "${d.substring(0, 2)}-${d.substring(2, 5)}-${d.substring(5)}"
+                        8       -> "${d.substring(0, 3)}-${d.substring(3, 5)}-${d.substring(5, 8)}"
+                        else    -> d
+                    }
+                },
                 color = color.trim().ifBlank { null },
                 photoUri = photoUri,
                 currentKm = currentKm.toIntOrNull(),
