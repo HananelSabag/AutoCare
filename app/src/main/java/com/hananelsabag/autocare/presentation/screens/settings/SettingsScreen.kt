@@ -387,16 +387,16 @@ private fun SettingsHero() {
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(end = 20.dp)
-                .size(56.dp),
+                .size(40.dp),
             shape = CircleShape,
-            shadowElevation = 4.dp,
+            shadowElevation = 2.dp,
             color = MaterialTheme.colorScheme.surface
         ) {
             Image(
                 painter = painterResource(R.drawable.autocare_logo),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(56.dp)
+                modifier = Modifier.size(40.dp)
             )
         }
 
