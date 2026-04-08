@@ -66,6 +66,10 @@
     <string name="add_car_comprehensive_expiry">Comprehensive Insurance</string>
     <string name="add_car_notes">Notes</string>
     <string name="add_car_save">Save Car</string>
+    <string name="add_car_discard_title">Discard changes?</string>
+    <string name="add_car_discard_message">The details you entered will be lost.</string>
+    <string name="add_car_discard_confirm">Discard</string>
+    <string name="add_car_discard_cancel">Keep editing</string>
 
     <!-- Photo / file source picker -->
     <string name="photo_option_camera">Take Photo</string>

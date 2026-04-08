@@ -66,6 +66,10 @@
     <string name="add_car_comprehensive_expiry">ביטוח מקיף</string>
     <string name="add_car_notes">הערות</string>
     <string name="add_car_save">שמור רכב</string>
+    <string name="add_car_discard_title">לבטל את הטופס?</string>
+    <string name="add_car_discard_message">הפרטים שהזנת ייאבדו.</string>
+    <string name="add_car_discard_confirm">בטל טופס</string>
+    <string name="add_car_discard_cancel">המשך עריכה</string>
 
     <!-- Photo / file source picker -->
     <string name="photo_option_camera">צלם תמונה</string>

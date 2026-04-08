@@ -87,6 +87,10 @@ class AddCarViewModel @Inject constructor(
         }
     }
 
+    fun hasUnsavedData(): Boolean =
+        make.isNotBlank() || model.isNotBlank() || year.isNotBlank() ||
+        licensePlate.isNotBlank() || notes.isNotBlank() || photoUri != null
+
     private fun validate(): Boolean {
         makeError = null; modelError = null; yearError = null; licensePlateError = null
         var valid = true

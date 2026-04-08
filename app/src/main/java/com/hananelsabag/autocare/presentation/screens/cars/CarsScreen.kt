@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -75,6 +76,7 @@ fun CarsScreen(
     val scope = rememberCoroutineScope()
 
     var showAddSheet by remember { mutableStateOf(false) }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
     var reminderPromptCar by remember { mutableStateOf<Car?>(null) }
     var showNotifRationale by remember { mutableStateOf(false) }
 
@@ -219,8 +221,12 @@ fun CarsScreen(
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
             onDismissRequest = {
-                addCarViewModel.resetForm()
-                showAddSheet = false
+                if (addCarViewModel.hasUnsavedData()) {
+                    showDiscardConfirm = true
+                } else {
+                    addCarViewModel.resetForm()
+                    showAddSheet = false
+                }
             },
             sheetState = sheetState
         ) {
@@ -236,6 +242,29 @@ fun CarsScreen(
                 }
             )
         }
+    }
+
+    // ── Discard confirmation ─────────────────────────────────────
+    if (showDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text(stringResource(R.string.add_car_discard_title)) },
+            text = { Text(stringResource(R.string.add_car_discard_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDiscardConfirm = false
+                    addCarViewModel.resetForm()
+                    showAddSheet = false
+                }) {
+                    Text(stringResource(R.string.add_car_discard_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConfirm = false }) {
+                    Text(stringResource(R.string.add_car_discard_cancel))
+                }
+            }
+        )
     }
 
     // ── Post-save Reminder Prompt ────────────────────────────────

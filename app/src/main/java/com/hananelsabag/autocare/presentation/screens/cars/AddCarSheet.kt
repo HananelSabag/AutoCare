@@ -68,6 +68,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -177,6 +178,7 @@ fun AddCarSheetContent(
     onCancel: () -> Unit
 ) {
     val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     // Holds the picked URI before cropping — null means no crop sheet open
     var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
@@ -376,7 +378,7 @@ fun AddCarSheetContent(
         // Make dropdown
         ExposedDropdownMenuBox(
             expanded = makeExpanded && filteredMakes.isNotEmpty(),
-            onExpandedChange = { makeExpanded = it },
+            onExpandedChange = { makeExpanded = it; if (it) keyboardController?.hide() },
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
             OutlinedTextField(
@@ -426,7 +428,7 @@ fun AddCarSheetContent(
         // Model dropdown
         ExposedDropdownMenuBox(
             expanded = modelExpanded && filteredModels.isNotEmpty(),
-            onExpandedChange = { modelExpanded = it },
+            onExpandedChange = { modelExpanded = it; if (it) keyboardController?.hide() },
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
             OutlinedTextField(
