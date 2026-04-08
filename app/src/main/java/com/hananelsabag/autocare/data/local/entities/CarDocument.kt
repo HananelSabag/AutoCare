@@ -7,7 +7,6 @@ import androidx.room.PrimaryKey
 
 enum class DocumentType {
     INSURANCE_COMPULSORY,
-    INSURANCE_COMPREHENSIVE,
     VEHICLE_LICENSE
 }
 

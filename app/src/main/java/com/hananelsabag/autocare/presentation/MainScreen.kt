@@ -1,5 +1,6 @@
 package com.hananelsabag.autocare.presentation
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -35,6 +36,7 @@ import com.hananelsabag.autocare.presentation.screens.documents.CarDocumentsScre
 import com.hananelsabag.autocare.presentation.screens.reminders.CarRemindersScreen
 import com.hananelsabag.autocare.presentation.screens.reminders.RemindersScreen
 import com.hananelsabag.autocare.presentation.screens.settings.SettingsScreen
+import com.hananelsabag.autocare.presentation.screens.testhistory.TestHistoryScreen
 
 private data class BottomNavItem(
     val screen: Screen,
@@ -80,6 +82,7 @@ fun MainScreen() {
     )
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
@@ -146,8 +149,14 @@ fun MainScreen() {
                     onMaintenanceHistory = {
                         navController.navigate(Screen.MaintenanceHistory.createRoute(carId))
                     },
+                    onTestHistory = {
+                        navController.navigate(Screen.TestHistory.createRoute(carId))
+                    },
                     onDocuments = {
                         navController.navigate(Screen.CarDocuments.createRoute(carId))
+                    },
+                    onReminders = {
+                        navController.navigate(Screen.CarReminders.createRoute(carId))
                     }
                 )
             }
@@ -161,6 +170,20 @@ fun MainScreen() {
                 val carId = backStackEntry.arguments?.getInt(Screen.MaintenanceHistory.ARG_CAR_ID)
                     ?: return@composable
                 MaintenanceHistoryScreen(
+                    carId = carId,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = Screen.TestHistory.route,
+                arguments = listOf(
+                    navArgument(Screen.TestHistory.ARG_CAR_ID) { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val carId = backStackEntry.arguments?.getInt(Screen.TestHistory.ARG_CAR_ID)
+                    ?: return@composable
+                TestHistoryScreen(
                     carId = carId,
                     onBack = { navController.popBackStack() }
                 )

@@ -35,7 +35,6 @@ class AddCarViewModel @Inject constructor(
     var currentKm by mutableStateOf("")
     var testExpiryDate by mutableStateOf<Long?>(null)
     var insuranceExpiryDate by mutableStateOf<Long?>(null)
-    var comprehensiveExpiryDate by mutableStateOf<Long?>(null)
     var notes by mutableStateOf("")
 
     // Validation errors
@@ -61,7 +60,7 @@ class AddCarViewModel @Inject constructor(
         editingCarId = null
         make = ""; model = ""; year = ""; licensePlate = ""
         color = ""; photoUri = null; currentKm = ""
-        testExpiryDate = null; insuranceExpiryDate = null; comprehensiveExpiryDate = null
+        testExpiryDate = null; insuranceExpiryDate = null
         notes = ""
         makeError = null; modelError = null; yearError = null; licensePlateError = null
     }
@@ -79,7 +78,6 @@ class AddCarViewModel @Inject constructor(
                 currentKm = car.currentKm?.toString() ?: ""
                 testExpiryDate = car.testExpiryDate
                 insuranceExpiryDate = car.insuranceExpiryDate
-                comprehensiveExpiryDate = car.comprehensiveInsuranceExpiryDate
                 notes = car.notes ?: ""
             }
         }
@@ -117,7 +115,6 @@ class AddCarViewModel @Inject constructor(
                 currentKm = currentKm.toIntOrNull(),
                 testExpiryDate = testExpiryDate,
                 insuranceExpiryDate = insuranceExpiryDate,
-                comprehensiveInsuranceExpiryDate = comprehensiveExpiryDate,
                 notes = notes.trim().ifBlank { null }
             )
             if (isEditing) {

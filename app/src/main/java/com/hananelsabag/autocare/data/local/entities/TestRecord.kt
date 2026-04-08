@@ -5,14 +5,8 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-enum class ReminderType {
-    TEST_EXPIRY,
-    INSURANCE_COMPULSORY_EXPIRY,
-    SERVICE_DATE
-}
-
 @Entity(
-    tableName = "reminders",
+    tableName = "test_records",
     foreignKeys = [
         ForeignKey(
             entity = Car::class,
@@ -23,11 +17,13 @@ enum class ReminderType {
     ],
     indices = [Index("carId")]
 )
-data class Reminder(
+data class TestRecord(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val carId: Int,
-    val type: ReminderType,
-    val enabled: Boolean = true,
-    val daysBeforeExpiry: Int = 14,
+    val date: Long,
+    val passed: Boolean,
+    val notes: String? = null,
+    /** URI of the test certificate photo / scan (optional) */
+    val certificateUri: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

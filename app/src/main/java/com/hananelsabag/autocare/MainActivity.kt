@@ -1,10 +1,10 @@
 package com.hananelsabag.autocare
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,17 +23,19 @@ import dagger.hilt.android.AndroidEntryPoint
 import java.util.concurrent.TimeUnit
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     // Activity-scoped so theme persists across all screens
     private val settingsViewModel: SettingsViewModel by viewModels()
 
     private fun scheduleReminderWorker() {
-        val request = PeriodicWorkRequestBuilder<ReminderCheckWorker>(1, TimeUnit.DAYS)
+        // 12-hour interval so the worker fires ~twice/day, supporting the
+        // "twice daily in the last 7 days" escalation requirement.
+        val request = PeriodicWorkRequestBuilder<ReminderCheckWorker>(12, TimeUnit.HOURS)
             .build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "reminder_check",
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE, // update interval without losing existing schedule
             request
         )
     }

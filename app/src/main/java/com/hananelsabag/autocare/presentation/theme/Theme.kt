@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
@@ -86,13 +87,17 @@ fun AutoCareTheme(
         else -> LightColorScheme
     }
 
+    // RTL only when the active locale is Hebrew.
+    // English (or any other LTR language) uses the system default.
+    val locale = LocalConfiguration.current.locales[0]
+    val isHebrew = locale.language == "iw" || locale.language == "he"
+    val layoutDirection = if (isHebrew) LayoutDirection.Rtl else LayoutDirection.Ltr
+
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
     ) {
-        // Force RTL for all layouts — the app is Hebrew-only.
-        // Individual composables can opt out via CompositionLocalProvider if needed.
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
             content()
         }
     }

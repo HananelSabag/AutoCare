@@ -28,5 +28,7 @@ data class MaintenanceRecord(
     val km: Int? = null,
     val costAmount: Double? = null,
     val notes: String? = null,
+    /** URI of a receipt photo / PDF attached to this record (optional) */
+    val receiptUri: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

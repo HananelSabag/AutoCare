@@ -13,6 +13,9 @@ class MaintenanceRecordRepositoryImpl @Inject constructor(
     override fun getRecordsForCar(carId: Int): Flow<List<MaintenanceRecord>> =
         dao.getRecordsForCar(carId)
 
+    override suspend fun getLastMaintenanceDateForCar(carId: Int): Long? =
+        dao.getLastMaintenanceDateForCar(carId)
+
     override suspend fun insertRecord(record: MaintenanceRecord): Long =
         dao.insertRecord(record)
 

@@ -18,7 +18,6 @@ data class Car(
     // Epoch milliseconds — nullable means "not set"
     val testExpiryDate: Long? = null,
     val insuranceExpiryDate: Long? = null,
-    val comprehensiveInsuranceExpiryDate: Long? = null,
     val notes: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

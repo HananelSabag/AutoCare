@@ -3,6 +3,7 @@ package com.hananelsabag.autocare.data.local.preferences
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -20,6 +21,8 @@ class AppPreferencesDataStore @Inject constructor(
 ) {
     companion object {
         private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
+        private val LANGUAGE_KEY = stringPreferencesKey("language")
+        val NOTIFICATION_PERMISSION_ASKED_KEY = booleanPreferencesKey("notification_permission_asked")
     }
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map { prefs ->
@@ -30,6 +33,26 @@ class AppPreferencesDataStore @Inject constructor(
     suspend fun setThemeMode(mode: ThemeMode) {
         context.dataStore.edit { prefs ->
             prefs[THEME_MODE_KEY] = mode.name
+        }
+    }
+
+    val language: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[LANGUAGE_KEY] ?: "system"
+    }
+
+    suspend fun setLanguage(languageTag: String) {
+        context.dataStore.edit { prefs ->
+            prefs[LANGUAGE_KEY] = languageTag
+        }
+    }
+
+    val notificationPermissionAsked: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[NOTIFICATION_PERMISSION_ASKED_KEY] ?: false
+    }
+
+    suspend fun setNotificationPermissionAsked(asked: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[NOTIFICATION_PERMISSION_ASKED_KEY] = asked
         }
     }
 }

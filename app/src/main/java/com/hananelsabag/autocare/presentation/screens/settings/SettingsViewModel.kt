@@ -16,13 +16,16 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     val themeMode = prefs.themeMode
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = ThemeMode.SYSTEM
-        )
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.SYSTEM)
+
+    val language = prefs.language
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "system")
 
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch { prefs.setThemeMode(mode) }
+    }
+
+    fun setLanguage(tag: String) {
+        viewModelScope.launch { prefs.setLanguage(tag) }
     }
 }

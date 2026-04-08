@@ -4,8 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,18 +19,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.Icon
 import coil3.compose.AsyncImage
 import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.data.local.entities.Car
@@ -39,6 +43,7 @@ import com.hananelsabag.autocare.presentation.theme.StatusRedContainer
 import com.hananelsabag.autocare.presentation.theme.StatusYellow
 import com.hananelsabag.autocare.presentation.theme.StatusYellowContainer
 import com.hananelsabag.autocare.util.StatusLevel
+import com.hananelsabag.autocare.util.carColorToComposeColor
 import com.hananelsabag.autocare.util.getStatusLevel
 
 @Composable
@@ -47,93 +52,177 @@ fun CarCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val worstLevel = listOf(
+        getStatusLevel(car.testExpiryDate),
+        getStatusLevel(car.insuranceExpiryDate)
+    ).maxByOrNull { it.ordinal } ?: StatusLevel.UNKNOWN
+
+    val accentColor = when (worstLevel) {
+        StatusLevel.GREEN -> StatusGreen
+        StatusLevel.YELLOW -> StatusYellow
+        StatusLevel.RED, StatusLevel.EXPIRED -> StatusRed
+        StatusLevel.UNKNOWN -> MaterialTheme.colorScheme.primary
+    }
+
     ElevatedCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp)
     ) {
+        // Row with IntrinsicSize.Min so the accent bar can fillMaxHeight
         Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
         ) {
-            // Photo or placeholder icon
+            // ── Left accent bar — full card height ───────────────────
             Box(
                 modifier = Modifier
-                    .size(72.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                if (car.photoUri != null) {
-                    AsyncImage(
-                        model = car.photoUri,
-                        contentDescription = stringResource(R.string.content_description_car_photo),
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                    .width(5.dp)
+                    .fillMaxHeight()
+                    .background(accentColor)
+            )
+
+            // ── Main content ─────────────────────────────────────────
+            Column(modifier = Modifier.weight(1f)) {
+
+                // Photo / placeholder hero area
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(148.dp)
+                ) {
+                    if (car.photoUri != null) {
+                        AsyncImage(
+                            model = car.photoUri,
+                            contentDescription = stringResource(R.string.content_description_car_photo),
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        // Gradient placeholder — no photo
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(
+                                            MaterialTheme.colorScheme.primaryContainer,
+                                            MaterialTheme.colorScheme.secondaryContainer
+                                        )
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.DirectionsCar,
+                                contentDescription = null,
+                                modifier = Modifier.size(72.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.35f)
+                            )
+                        }
+                    }
+
+                    // Gradient scrim — transparent at top, dark at bottom
+                    // Gives the text overlay contrast on any photo
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(90.dp)
+                            .align(Alignment.BottomStart)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.72f))
+                                )
+                            )
                     )
-                } else {
-                    Icon(
-                        imageVector = Icons.Filled.DirectionsCar,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(36.dp)
+
+                    // Make + Model overlaid on bottom of hero
+                    Text(
+                        text = "${car.make} ${car.model}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                // Make + Model
-                Text(
-                    text = "${car.make} ${car.model}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(3.dp))
-
-                // Year · License plate · km (if available)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = car.year.toString(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                // ── Info row ─────────────────────────────────────────
+                Column(
+                    modifier = Modifier.padding(
+                        start = 14.dp, end = 14.dp,
+                        top = 10.dp, bottom = 12.dp
                     )
-                    LicensePlateBadge(plate = car.licensePlate)
-                    if (car.currentKm != null) {
+                ) {
+                    // Year · Plate · KM
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Text(
-                            text = stringResource(R.string.car_card_km_format, car.currentKm.toString()),
-                            style = MaterialTheme.typography.bodySmall,
+                            text = car.year.toString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        SeparatorDot()
+                        LicensePlateBadge(plate = car.licensePlate)
+                        if (car.currentKm != null) {
+                            SeparatorDot()
+                            Text(
+                                text = stringResource(
+                                    R.string.car_card_km_format,
+                                    car.currentKm.toString()
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                // Status chips
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    StatusChip(
-                        label = stringResource(R.string.car_card_test_label),
-                        level = getStatusLevel(car.testExpiryDate)
-                    )
-                    if (car.insuranceExpiryDate != null) {
+                    // Status chips + color dot
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         StatusChip(
-                            label = stringResource(R.string.car_card_insurance_label),
-                            level = getStatusLevel(car.insuranceExpiryDate)
+                            label = stringResource(R.string.car_card_test_label),
+                            level = getStatusLevel(car.testExpiryDate)
                         )
+                        if (car.insuranceExpiryDate != null) {
+                            StatusChip(
+                                label = stringResource(R.string.car_card_insurance_label),
+                                level = getStatusLevel(car.insuranceExpiryDate)
+                            )
+                        }
+                        Spacer(modifier = Modifier.weight(1f))
+                        if (car.color != null) {
+                            ColorDot(colorName = car.color)
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun SeparatorDot() {
+    Box(
+        modifier = Modifier
+            .size(4.dp)
+            .background(
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                CircleShape
+            )
+    )
 }
 
 @Composable
@@ -144,8 +233,9 @@ private fun LicensePlateBadge(plate: String) {
     ) {
         Text(
             text = plate,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
             style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSecondaryContainer
         )
     }
@@ -168,20 +258,29 @@ private fun StatusChip(label: String, level: StatusLevel) {
 
     Surface(color = containerColor, shape = MaterialTheme.shapes.extraSmall) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .background(dotColor, CircleShape)
-            )
+            Box(modifier = Modifier.size(6.dp).background(dotColor, CircleShape))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = dotColor
+                color = dotColor,
+                fontWeight = FontWeight.Medium
             )
         }
     }
+}
+
+@Composable
+private fun ColorDot(colorName: String) {
+    val dotColor = carColorToComposeColor(colorName) ?: return
+    Box(
+        modifier = Modifier
+            .size(18.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant, CircleShape)
+            .padding(2.dp)
+            .background(dotColor, CircleShape)
+    )
 }

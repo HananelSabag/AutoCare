@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,24 +20,30 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -48,17 +55,45 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.hananelsabag.autocare.R
+import com.hananelsabag.autocare.util.CAR_MAKES
+import com.hananelsabag.autocare.util.modelsForMake
 import com.hananelsabag.autocare.util.toFormattedDate
+
+// ── Color data ───────────────────────────────────────────────────────────────
+
+private data class CarColorOption(val hebrewName: String, val displayColor: Color)
+
+private val CAR_COLOR_OPTIONS = listOf(
+    CarColorOption("לבן", Color.White),
+    CarColorOption("שחור", Color(0xFF1A1A1A)),
+    CarColorOption("אפור", Color(0xFF757575)),
+    CarColorOption("כסוף", Color(0xFFC0C0C0)),
+    CarColorOption("אדום", Color(0xFFE53935)),
+    CarColorOption("כחול", Color(0xFF1E88E5)),
+    CarColorOption("ירוק", Color(0xFF43A047)),
+    CarColorOption("צהוב", Color(0xFFFDD835)),
+    CarColorOption("כתום", Color(0xFFFF6D00)),
+    CarColorOption("חום", Color(0xFF6D4C41)),
+    CarColorOption("סגול", Color(0xFF8E24AA)),
+    CarColorOption("ורוד", Color(0xFFE91E63)),
+    CarColorOption("בז'", Color(0xFFF5F0DC)),
+    CarColorOption("זהב", Color(0xFFFFCA28)),
+    CarColorOption("נייבי", Color(0xFF1A237E)),
+)
+
+// ── Sheet content ─────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,11 +112,24 @@ fun AddCarSheetContent(
                 context.contentResolver.takePersistableUriPermission(
                     it, Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
-            } catch (_: Exception) {
-                // Not all providers support persistable permission – that's fine
-            }
+            } catch (_: Exception) { }
             viewModel.photoUri = it.toString()
         }
+    }
+
+    var makeExpanded by remember { mutableStateOf(false) }
+    val makeQuery = viewModel.make
+    val filteredMakes = remember(makeQuery) {
+        if (makeQuery.isBlank()) CAR_MAKES
+        else CAR_MAKES.filter { it.contains(makeQuery, ignoreCase = true) }
+    }
+
+    var modelExpanded by remember { mutableStateOf(false) }
+    val modelQuery = viewModel.model
+    val modelSuggestions = remember(viewModel.make) { modelsForMake(viewModel.make) }
+    val filteredModels = remember(modelQuery, modelSuggestions) {
+        if (modelQuery.isBlank()) modelSuggestions
+        else modelSuggestions.filter { it.contains(modelQuery, ignoreCase = true) }
     }
 
     Column(
@@ -91,7 +139,8 @@ fun AddCarSheetContent(
             .navigationBarsPadding()
             .imePadding()
     ) {
-        // ── Header ──────────────────────────────────────────────
+
+        // ── Header ───────────────────────────────────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -115,14 +164,21 @@ fun AddCarSheetContent(
             }
         }
 
-        // ── Photo picker ─────────────────────────────────────────
+        // ── Photo picker — premium, inviting ─────────────────────────
         Box(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth()
-                .height(160.dp)
-                .clip(MaterialTheme.shapes.large)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .height(180.dp)
+                .clip(MaterialTheme.shapes.extraLarge)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    )
+                )
                 .clickable {
                     photoPickerLauncher.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -137,35 +193,68 @@ fun AddCarSheetContent(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
+                // Subtle overlay + change label
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.35f)),
+                        .background(Color.Black.copy(alpha = 0.28f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Edit,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    Surface(
+                        color = Color.Black.copy(alpha = 0.55f),
+                        shape = MaterialTheme.shapes.extraLarge
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.PhotoCamera,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = stringResource(R.string.add_car_photo_tap_change),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White
+                            )
+                        }
+                    }
                 }
             } else {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.PhotoCamera,
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(
+                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PhotoCamera,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                     Text(
                         text = stringResource(R.string.add_car_photo),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = stringResource(R.string.add_car_photo_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
                     )
                 }
             }
@@ -173,23 +262,118 @@ fun AddCarSheetContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // ── Required fields ──────────────────────────────────────
+        // ── Required fields ──────────────────────────────────────────
         SectionHeader(stringResource(R.string.add_car_section_required))
 
-        CarFormField(
-            value = viewModel.make,
-            onValueChange = { viewModel.make = it },
-            label = stringResource(R.string.add_car_make),
-            error = viewModel.makeError,
+        // Make dropdown
+        ExposedDropdownMenuBox(
+            expanded = makeExpanded && filteredMakes.isNotEmpty(),
+            onExpandedChange = { makeExpanded = it },
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        )
-        CarFormField(
-            value = viewModel.model,
-            onValueChange = { viewModel.model = it },
-            label = stringResource(R.string.add_car_model),
-            error = viewModel.modelError,
+        ) {
+            OutlinedTextField(
+                value = viewModel.make,
+                onValueChange = {
+                    viewModel.make = it
+                    makeExpanded = true
+                    if (viewModel.model.isNotBlank() && modelsForMake(it).isNotEmpty()) {
+                        viewModel.model = ""
+                    }
+                },
+                label = { Text(stringResource(R.string.add_car_make)) },
+                isError = viewModel.makeError != null,
+                supportingText = viewModel.makeError?.let {
+                    { Text(stringResource(R.string.error_field_required)) }
+                },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(
+                        expanded = makeExpanded && filteredMakes.isNotEmpty()
+                    )
+                },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryEditable),
+                shape = MaterialTheme.shapes.medium
+            )
+            if (filteredMakes.isNotEmpty()) {
+                ExposedDropdownMenu(
+                    expanded = makeExpanded,
+                    onDismissRequest = { makeExpanded = false }
+                ) {
+                    filteredMakes.take(8).forEach { make ->
+                        DropdownMenuItem(
+                            text = { Text(make, style = MaterialTheme.typography.bodyMedium) },
+                            onClick = {
+                                viewModel.make = make
+                                viewModel.model = ""
+                                makeExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        // Model dropdown
+        ExposedDropdownMenuBox(
+            expanded = modelExpanded && filteredModels.isNotEmpty(),
+            onExpandedChange = { modelExpanded = it },
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        )
+        ) {
+            OutlinedTextField(
+                value = viewModel.model,
+                onValueChange = {
+                    viewModel.model = it
+                    modelExpanded = true
+                },
+                label = { Text(stringResource(R.string.add_car_model)) },
+                placeholder = {
+                    Text(
+                        stringResource(R.string.add_car_model_hint),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                },
+                isError = viewModel.modelError != null,
+                supportingText = viewModel.modelError?.let {
+                    { Text(stringResource(R.string.error_field_required)) }
+                },
+                trailingIcon = if (filteredModels.isNotEmpty()) {
+                    {
+                        ExposedDropdownMenuDefaults.TrailingIcon(
+                            expanded = modelExpanded && filteredModels.isNotEmpty()
+                        )
+                    }
+                } else null,
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (filteredModels.isNotEmpty())
+                            Modifier.menuAnchor(MenuAnchorType.PrimaryEditable)
+                        else Modifier
+                    ),
+                shape = MaterialTheme.shapes.medium
+            )
+            if (filteredModels.isNotEmpty()) {
+                ExposedDropdownMenu(
+                    expanded = modelExpanded,
+                    onDismissRequest = { modelExpanded = false }
+                ) {
+                    filteredModels.take(8).forEach { model ->
+                        DropdownMenuItem(
+                            text = { Text(model, style = MaterialTheme.typography.bodyMedium) },
+                            onClick = {
+                                viewModel.model = model
+                                modelExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        // Year + License plate
         Row(
             modifier = Modifier
                 .padding(horizontal = 16.dp, vertical = 4.dp)
@@ -213,31 +397,34 @@ fun AddCarSheetContent(
             )
         }
 
-        // ── Optional fields ──────────────────────────────────────
+        // ── Optional fields ──────────────────────────────────────────
         SectionHeader(stringResource(R.string.add_car_section_optional))
 
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            CarFormField(
-                value = viewModel.color,
-                onValueChange = { viewModel.color = it },
-                label = stringResource(R.string.add_car_color),
-                modifier = Modifier.weight(1f)
-            )
-            CarFormField(
-                value = viewModel.currentKm,
-                onValueChange = { viewModel.currentKm = it },
-                label = stringResource(R.string.add_car_current_km),
-                keyboardType = KeyboardType.Number,
-                modifier = Modifier.weight(1f)
-            )
-        }
+        // Color picker
+        Text(
+            text = stringResource(R.string.add_car_color_picker_label),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 2.dp)
+        )
+        ColorCirclePicker(
+            selectedColor = viewModel.color,
+            onColorSelected = { viewModel.color = it }
+        )
 
-        // ── Date fields ──────────────────────────────────────────
+        // KM field
+        CarFormField(
+            value = viewModel.currentKm,
+            onValueChange = { viewModel.currentKm = it },
+            label = stringResource(R.string.add_car_current_km),
+            keyboardType = KeyboardType.Number,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+        )
+
+        // ── Date fields ──────────────────────────────────────────────
         SectionHeader(stringResource(R.string.add_car_section_dates))
 
         DatePickerField(
@@ -254,15 +441,8 @@ fun AddCarSheetContent(
             onDateCleared = { viewModel.insuranceExpiryDate = null },
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
-        DatePickerField(
-            label = stringResource(R.string.add_car_comprehensive_expiry),
-            dateMs = viewModel.comprehensiveExpiryDate,
-            onDateSelected = { viewModel.comprehensiveExpiryDate = it },
-            onDateCleared = { viewModel.comprehensiveExpiryDate = null },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        )
 
-        // ── Notes ────────────────────────────────────────────────
+        // ── Notes ────────────────────────────────────────────────────
         CarFormField(
             value = viewModel.notes,
             onValueChange = { viewModel.notes = it },
@@ -273,7 +453,7 @@ fun AddCarSheetContent(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        // ── Save button ──────────────────────────────────────────
+        // ── Save ─────────────────────────────────────────────────────
         Button(
             onClick = { viewModel.save(onSaved) },
             modifier = Modifier
@@ -292,12 +472,106 @@ fun AddCarSheetContent(
     }
 }
 
+// ── Color circle picker ───────────────────────────────────────────────────────
+
+@Composable
+private fun ColorCirclePicker(
+    selectedColor: String,
+    onColorSelected: (String) -> Unit
+) {
+    // Circles — wrap across rows (no horizontal scrolling)
+    FlowRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        CAR_COLOR_OPTIONS.forEach { option ->
+            val isSelected = selectedColor.trim().equals(option.hebrewName, ignoreCase = true)
+            ColorCircle(
+                option = option,
+                isSelected = isSelected,
+                onClick = { onColorSelected(option.hebrewName) }
+            )
+        }
+    }
+
+    // Text field — always visible; shows the current value; allows custom entry
+    OutlinedTextField(
+        value = selectedColor,
+        onValueChange = onColorSelected,
+        label = { Text(stringResource(R.string.add_car_color)) },
+        placeholder = {
+            Text(
+                text = stringResource(R.string.add_car_color_custom_hint),
+                style = MaterialTheme.typography.bodySmall
+            )
+        },
+        singleLine = true,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = MaterialTheme.shapes.medium
+    )
+}
+
+@Composable
+private fun ColorCircle(
+    option: CarColorOption,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    // Outer ring: primary color when selected, subtle outline otherwise
+    // Inner swatch: the actual color, slightly inset to reveal the ring
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(if (isSelected) 34.dp else 38.dp)
+                .clip(CircleShape)
+                .background(option.displayColor),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isSelected) {
+                // Scrim + check so it reads on any color
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.25f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(13.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Shared helpers ────────────────────────────────────────────────────────────
+
 @Composable
 private fun SectionHeader(title: String) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
@@ -383,8 +657,7 @@ private fun DatePickerField(
                     text = dateMs?.toFormattedDate() ?: stringResource(R.string.date_not_set),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (dateMs != null) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Start
+                    else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (dateMs != null) {

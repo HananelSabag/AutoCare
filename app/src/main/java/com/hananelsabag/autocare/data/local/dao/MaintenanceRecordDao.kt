@@ -15,6 +15,9 @@ interface MaintenanceRecordDao {
     @Query("SELECT * FROM maintenance_records WHERE carId = :carId ORDER BY date DESC")
     fun getRecordsForCar(carId: Int): Flow<List<MaintenanceRecord>>
 
+    @Query("SELECT date FROM maintenance_records WHERE carId = :carId AND type = 'MAINTENANCE' ORDER BY date DESC LIMIT 1")
+    suspend fun getLastMaintenanceDateForCar(carId: Int): Long?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRecord(record: MaintenanceRecord): Long
 

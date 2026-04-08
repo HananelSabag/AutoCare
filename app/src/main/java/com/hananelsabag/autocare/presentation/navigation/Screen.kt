@@ -15,6 +15,11 @@ sealed class Screen(val route: String) {
         const val ARG_CAR_ID = "carId"
     }
 
+    data object TestHistory : Screen("test_history/{carId}") {
+        fun createRoute(carId: Int) = "test_history/$carId"
+        const val ARG_CAR_ID = "carId"
+    }
+
     data object CarReminders : Screen("car_reminders/{carId}") {
         fun createRoute(carId: Int) = "car_reminders/$carId"
         const val ARG_CAR_ID = "carId"

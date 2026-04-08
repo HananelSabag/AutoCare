@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface MaintenanceRecordRepository {
     fun getRecordsForCar(carId: Int): Flow<List<MaintenanceRecord>>
+    suspend fun getLastMaintenanceDateForCar(carId: Int): Long?
     suspend fun insertRecord(record: MaintenanceRecord): Long
     suspend fun updateRecord(record: MaintenanceRecord)
     suspend fun deleteRecord(record: MaintenanceRecord)
