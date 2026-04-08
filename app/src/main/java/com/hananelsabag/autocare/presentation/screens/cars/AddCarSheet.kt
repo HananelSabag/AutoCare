@@ -1,6 +1,8 @@
 package com.hananelsabag.autocare.presentation.screens.cars
 
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,13 +31,20 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -67,31 +76,56 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.hananelsabag.autocare.R
+import com.hananelsabag.autocare.presentation.components.ImageCropSheet
 import com.hananelsabag.autocare.util.CAR_MAKES
 import com.hananelsabag.autocare.util.modelsForMake
 import com.hananelsabag.autocare.util.toFormattedDate
 
 // ── Color data ───────────────────────────────────────────────────────────────
 
-private data class CarColorOption(val hebrewName: String, val displayColor: Color)
+// key is the value stored in DB (language-agnostic); nameRes is the localized display name
+private data class CarColorOption(val key: String, val nameRes: Int, val displayColor: Color)
 
 private val CAR_COLOR_OPTIONS = listOf(
-    CarColorOption("לבן", Color.White),
-    CarColorOption("שחור", Color(0xFF1A1A1A)),
-    CarColorOption("אפור", Color(0xFF757575)),
-    CarColorOption("כסוף", Color(0xFFC0C0C0)),
-    CarColorOption("אדום", Color(0xFFE53935)),
-    CarColorOption("כחול", Color(0xFF1E88E5)),
-    CarColorOption("ירוק", Color(0xFF43A047)),
-    CarColorOption("צהוב", Color(0xFFFDD835)),
-    CarColorOption("כתום", Color(0xFFFF6D00)),
-    CarColorOption("חום", Color(0xFF6D4C41)),
-    CarColorOption("סגול", Color(0xFF8E24AA)),
-    CarColorOption("ורוד", Color(0xFFE91E63)),
-    CarColorOption("בז'", Color(0xFFF5F0DC)),
-    CarColorOption("זהב", Color(0xFFFFCA28)),
-    CarColorOption("נייבי", Color(0xFF1A237E)),
+    CarColorOption("white",  R.string.color_white,  Color.White),
+    CarColorOption("black",  R.string.color_black,  Color(0xFF1A1A1A)),
+    CarColorOption("gray",   R.string.color_gray,   Color(0xFF757575)),
+    CarColorOption("silver", R.string.color_silver, Color(0xFFC0C0C0)),
+    CarColorOption("red",    R.string.color_red,    Color(0xFFE53935)),
+    CarColorOption("blue",   R.string.color_blue,   Color(0xFF1E88E5)),
+    CarColorOption("green",  R.string.color_green,  Color(0xFF43A047)),
+    CarColorOption("yellow", R.string.color_yellow, Color(0xFFFDD835)),
+    CarColorOption("orange", R.string.color_orange, Color(0xFFFF6D00)),
+    CarColorOption("brown",  R.string.color_brown,  Color(0xFF6D4C41)),
+    CarColorOption("purple", R.string.color_purple, Color(0xFF8E24AA)),
+    CarColorOption("pink",   R.string.color_pink,   Color(0xFFE91E63)),
+    CarColorOption("beige",  R.string.color_beige,  Color(0xFFF5F0DC)),
+    CarColorOption("gold",   R.string.color_gold,   Color(0xFFFFCA28)),
+    CarColorOption("navy",   R.string.color_navy,   Color(0xFF1A237E)),
 )
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Auto-formats a license plate as the user types.
+ * 7 digits → XX-XXX-XX, 8 digits → XXX-XX-XXX (both Israeli plate formats).
+ */
+private fun formatLicensePlate(input: String): String {
+    val digits = input.filter { it.isDigit() }.take(8)
+    return when (digits.length) {
+        in 0..2 -> digits
+        in 3..5 -> "${digits.substring(0, 2)}-${digits.substring(2)}"
+        in 6..7 -> "${digits.substring(0, 2)}-${digits.substring(2, 5)}-${digits.substring(5)}"
+        8       -> "${digits.substring(0, 3)}-${digits.substring(3, 5)}-${digits.substring(5, 8)}"
+        else    -> digits
+    }
+}
+
+/** Creates a temp file in cacheDir and returns a FileProvider URI for camera capture. */
+private fun createTempCameraUri(context: Context): Uri {
+    val file = File.createTempFile("camera_photo_", ".jpg", context.cacheDir)
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
 
 // ── Sheet content ─────────────────────────────────────────────────────────────
 
@@ -104,6 +138,11 @@ fun AddCarSheetContent(
 ) {
     val context = LocalContext.current
 
+    // Holds the picked URI before cropping — null means no crop sheet open
+    var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
+    var showPhotoSourceMenu by remember { mutableStateOf(false) }
+    var cameraPhotoUri by remember { mutableStateOf<Uri?>(null) }
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -113,8 +152,14 @@ fun AddCarSheetContent(
                     it, Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             } catch (_: Exception) { }
-            viewModel.photoUri = it.toString()
+            pendingCropUri = it  // open crop sheet instead of setting directly
         }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) { cameraPhotoUri?.let { pendingCropUri = it } }
     }
 
     var makeExpanded by remember { mutableStateOf(false) }
@@ -179,11 +224,7 @@ fun AddCarSheetContent(
                         )
                     )
                 )
-                .clickable {
-                    photoPickerLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
+                .clickable { showPhotoSourceMenu = true },
             contentAlignment = Alignment.Center
         ) {
             if (viewModel.photoUri != null) {
@@ -257,6 +298,33 @@ fun AddCarSheetContent(
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
                     )
                 }
+            }
+
+            // Source picker menu — anchors to this Box
+            DropdownMenu(
+                expanded = showPhotoSourceMenu,
+                onDismissRequest = { showPhotoSourceMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.photo_option_camera)) },
+                    leadingIcon = { Icon(Icons.Filled.PhotoCamera, contentDescription = null) },
+                    onClick = {
+                        showPhotoSourceMenu = false
+                        val uri = createTempCameraUri(context)
+                        cameraPhotoUri = uri
+                        cameraLauncher.launch(uri)
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.photo_option_gallery)) },
+                    leadingIcon = { Icon(Icons.Outlined.PhotoLibrary, contentDescription = null) },
+                    onClick = {
+                        showPhotoSourceMenu = false
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
+                )
             }
         }
 
@@ -373,6 +441,24 @@ fun AddCarSheetContent(
             }
         }
 
+        // Year quick-pick chips
+        val currentYear = remember { java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) }
+        val yearChips = remember(currentYear) { (0..4).map { (currentYear - it).toString() } }
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            yearChips.forEach { chipYear ->
+                FilterChip(
+                    selected = viewModel.year == chipYear,
+                    onClick = { viewModel.year = chipYear },
+                    label = { Text(chipYear, style = MaterialTheme.typography.labelSmall) }
+                )
+            }
+        }
+
         // Year + License plate
         Row(
             modifier = Modifier
@@ -390,9 +476,10 @@ fun AddCarSheetContent(
             )
             CarFormField(
                 value = viewModel.licensePlate,
-                onValueChange = { viewModel.licensePlate = it },
+                onValueChange = { viewModel.licensePlate = formatLicensePlate(it) },
                 label = stringResource(R.string.add_car_license_plate),
                 error = viewModel.licensePlateError,
+                keyboardType = KeyboardType.Number,
                 modifier = Modifier.weight(1.6f)
             )
         }
@@ -454,8 +541,14 @@ fun AddCarSheetContent(
         )
 
         // ── Save ─────────────────────────────────────────────────────
+        val isFormComplete = viewModel.make.isNotBlank() &&
+            viewModel.model.isNotBlank() &&
+            viewModel.year.isNotBlank() &&
+            viewModel.licensePlate.isNotBlank()
+
         Button(
             onClick = { viewModel.save(onSaved) },
+            enabled = isFormComplete,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -470,6 +563,24 @@ fun AddCarSheetContent(
 
         Spacer(modifier = Modifier.height(16.dp))
     }
+
+    // ── Crop sheet — shown after photo is picked ──────────────────
+    pendingCropUri?.let { cropUri ->
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { pendingCropUri = null },
+            sheetState = sheetState
+        ) {
+            ImageCropSheet(
+                uri = cropUri,
+                onConfirm = { croppedUri ->
+                    viewModel.photoUri = croppedUri.toString()
+                    pendingCropUri = null
+                },
+                onDismiss = { pendingCropUri = null }
+            )
+        }
+    }
 }
 
 // ── Color circle picker ───────────────────────────────────────────────────────
@@ -479,6 +590,8 @@ private fun ColorCirclePicker(
     selectedColor: String,
     onColorSelected: (String) -> Unit
 ) {
+    val context = LocalContext.current
+
     // Circles — wrap across rows (no horizontal scrolling)
     FlowRow(
         modifier = Modifier
@@ -488,19 +601,32 @@ private fun ColorCirclePicker(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         CAR_COLOR_OPTIONS.forEach { option ->
-            val isSelected = selectedColor.trim().equals(option.hebrewName, ignoreCase = true)
+            val isSelected = selectedColor.equals(option.key, ignoreCase = true)
             ColorCircle(
                 option = option,
                 isSelected = isSelected,
-                onClick = { onColorSelected(option.hebrewName) }
+                onClick = { onColorSelected(option.key) }  // store English key
             )
         }
     }
 
-    // Text field — always visible; shows the current value; allows custom entry
+    // Resolve display value: show localized name if key matches, otherwise show raw text
+    val localizedDisplay = remember(selectedColor) {
+        CAR_COLOR_OPTIONS.find { it.key.equals(selectedColor, ignoreCase = true) }
+            ?.let { context.getString(it.nameRes) }
+            ?: selectedColor
+    }
+
+    // Text field — always visible; shows localized name or custom entry
     OutlinedTextField(
-        value = selectedColor,
-        onValueChange = onColorSelected,
+        value = localizedDisplay,
+        onValueChange = { typed ->
+            // If the typed text matches a localized name → store its key; otherwise store as-is
+            val matched = CAR_COLOR_OPTIONS.firstOrNull { option ->
+                context.getString(option.nameRes).equals(typed, ignoreCase = true)
+            }
+            onColorSelected(matched?.key ?: typed)
+        },
         label = { Text(stringResource(R.string.add_car_color)) },
         placeholder = {
             Text(
@@ -603,6 +729,7 @@ private fun CarFormField(
                     text = when (err) {
                         FieldError.Required -> stringResource(R.string.error_field_required)
                         FieldError.InvalidYear -> stringResource(R.string.error_year_invalid)
+                        FieldError.InvalidLicensePlate -> stringResource(R.string.error_invalid_license_plate)
                     }
                 )
             }

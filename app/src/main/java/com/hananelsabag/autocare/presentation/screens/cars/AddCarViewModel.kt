@@ -18,6 +18,7 @@ import javax.inject.Inject
 sealed class FieldError {
     data object Required : FieldError()
     data object InvalidYear : FieldError()
+    data object InvalidLicensePlate : FieldError()
 }
 
 @HiltViewModel
@@ -92,7 +93,11 @@ class AddCarViewModel @Inject constructor(
 
         if (make.isBlank()) { makeError = FieldError.Required; valid = false }
         if (model.isBlank()) { modelError = FieldError.Required; valid = false }
-        if (licensePlate.isBlank()) { licensePlateError = FieldError.Required; valid = false }
+        val plateDigits = licensePlate.filter { it.isDigit() }
+        when {
+            licensePlate.isBlank() -> { licensePlateError = FieldError.Required; valid = false }
+            plateDigits.length !in 7..8 -> { licensePlateError = FieldError.InvalidLicensePlate; valid = false }
+        }
 
         val yearInt = year.toIntOrNull()
         when {

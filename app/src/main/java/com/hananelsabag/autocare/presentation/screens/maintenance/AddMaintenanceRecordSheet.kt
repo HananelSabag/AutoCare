@@ -1,6 +1,8 @@
 package com.hananelsabag.autocare.presentation.screens.maintenance
 
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,14 +29,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CarRepair
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Receipt
+import androidx.compose.material.icons.outlined.Upgrade
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -49,6 +57,8 @@ import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,6 +81,11 @@ import com.hananelsabag.autocare.data.local.entities.RecordType
 import com.hananelsabag.autocare.util.toFormattedDate
 import java.time.LocalDate
 import java.time.ZoneId
+
+private fun createTempCameraUri(context: Context): Uri {
+    val file = File.createTempFile("receipt_photo_", ".jpg", context.cacheDir)
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,11 +111,32 @@ fun AddMaintenanceRecordSheet(
     var notes by remember { mutableStateOf(existingRecord?.notes ?: "") }
     var receiptUri by remember { mutableStateOf(existingRecord?.receiptUri) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showReceiptSourceMenu by remember { mutableStateOf(false) }
+    var cameraReceiptUri by remember { mutableStateOf<Uri?>(null) }
     var descriptionError by remember { mutableStateOf(false) }
     var kmError by remember { mutableStateOf(false) }
 
     val receiptPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {}
+            receiptUri = it.toString()
+        }
+    }
+
+    val receiptCameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) { cameraReceiptUri?.let { receiptUri = it.toString() } }
+    }
+
+    val pdfPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
             try {
@@ -140,17 +176,27 @@ fun AddMaintenanceRecordSheet(
         stringResource(R.string.chip_wipers_replacement),
         stringResource(R.string.chip_belts_replacement)
     )
+    val upgradeChips = listOf(
+        stringResource(R.string.chip_audio_upgrade),
+        stringResource(R.string.chip_window_tinting),
+        stringResource(R.string.chip_suspension_upgrade),
+        stringResource(R.string.chip_body_kit),
+        stringResource(R.string.chip_paint_job),
+        stringResource(R.string.chip_performance_upgrade)
+    )
 
     val quickChips = when (type) {
         RecordType.MAINTENANCE -> maintenanceChips
         RecordType.REPAIR -> repairChips
         RecordType.WEAR -> wearChips
+        RecordType.UPGRADE -> upgradeChips
     }
 
     val descriptionPlaceholder = when (type) {
         RecordType.MAINTENANCE -> stringResource(R.string.record_description_placeholder_maintenance)
         RecordType.REPAIR -> stringResource(R.string.record_description_placeholder_repair)
         RecordType.WEAR -> stringResource(R.string.record_description_placeholder_wear)
+        RecordType.UPGRADE -> stringResource(R.string.record_description_placeholder_upgrade)
     }
 
     // Chip container / label colors match the selected record type accent
@@ -158,16 +204,19 @@ fun AddMaintenanceRecordSheet(
         RecordType.MAINTENANCE -> MaterialTheme.colorScheme.primaryContainer
         RecordType.REPAIR -> MaterialTheme.colorScheme.errorContainer
         RecordType.WEAR -> MaterialTheme.colorScheme.tertiaryContainer
+        RecordType.UPGRADE -> MaterialTheme.colorScheme.secondaryContainer
     }
     val chipLabelColor = when (type) {
         RecordType.MAINTENANCE -> MaterialTheme.colorScheme.onPrimaryContainer
         RecordType.REPAIR -> MaterialTheme.colorScheme.onErrorContainer
         RecordType.WEAR -> MaterialTheme.colorScheme.onTertiaryContainer
+        RecordType.UPGRADE -> MaterialTheme.colorScheme.onSecondaryContainer
     }
     val chipBorderColor = when (type) {
         RecordType.MAINTENANCE -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
         RecordType.REPAIR -> MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
         RecordType.WEAR -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
+        RecordType.UPGRADE -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
     }
 
     Column(
@@ -215,11 +264,13 @@ fun AddMaintenanceRecordSheet(
                     RecordType.MAINTENANCE -> MaterialTheme.colorScheme.primary
                     RecordType.REPAIR -> MaterialTheme.colorScheme.error
                     RecordType.WEAR -> MaterialTheme.colorScheme.tertiary
+                    RecordType.UPGRADE -> MaterialTheme.colorScheme.secondary
                 }
                 val icon = when (recordType) {
                     RecordType.MAINTENANCE -> Icons.Outlined.Build
                     RecordType.REPAIR -> Icons.Outlined.CarRepair
                     RecordType.WEAR -> Icons.Outlined.Autorenew
+                    RecordType.UPGRADE -> Icons.Outlined.Upgrade
                 }
                 FilterChip(
                     selected = type == recordType,
@@ -400,6 +451,44 @@ fun AddMaintenanceRecordSheet(
 
         // ── Receipt photo ─────────────────────────────────────────────
         SheetSectionHeader(stringResource(R.string.record_receipt_label))
+
+        // Shared source-picker dropdown
+        val receiptSourceDropdown: @Composable () -> Unit = {
+            DropdownMenu(
+                expanded = showReceiptSourceMenu,
+                onDismissRequest = { showReceiptSourceMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.photo_option_camera)) },
+                    leadingIcon = { Icon(Icons.Filled.PhotoCamera, contentDescription = null) },
+                    onClick = {
+                        showReceiptSourceMenu = false
+                        val uri = createTempCameraUri(context)
+                        cameraReceiptUri = uri
+                        receiptCameraLauncher.launch(uri)
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.photo_option_gallery)) },
+                    leadingIcon = { Icon(Icons.Outlined.PhotoLibrary, contentDescription = null) },
+                    onClick = {
+                        showReceiptSourceMenu = false
+                        receiptPicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.photo_option_pdf)) },
+                    leadingIcon = { Icon(Icons.Filled.PictureAsPdf, contentDescription = null) },
+                    onClick = {
+                        showReceiptSourceMenu = false
+                        pdfPicker.launch("application/pdf")
+                    }
+                )
+            }
+        }
+
         if (receiptUri != null) {
             Box(
                 modifier = Modifier
@@ -407,11 +496,7 @@ fun AddMaintenanceRecordSheet(
                     .fillMaxWidth()
                     .height(148.dp)
                     .clip(MaterialTheme.shapes.large)
-                    .clickable {
-                        receiptPicker.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    }
+                    .clickable { showReceiptSourceMenu = true }
             ) {
                 AsyncImage(
                     model = receiptUri,
@@ -437,43 +522,46 @@ fun AddMaintenanceRecordSheet(
                         modifier = Modifier.size(16.dp)
                     )
                 }
+                receiptSourceDropdown()
             }
         } else {
-            OutlinedCard(
-                onClick = {
-                    receiptPicker.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = MaterialTheme.shapes.large
-            ) {
-                Row(
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedCard(
+                    onClick = { showReceiptSourceMenu = true },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = MaterialTheme.shapes.large
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Receipt,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = stringResource(R.string.record_receipt_add),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Receipt,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = stringResource(R.string.record_receipt_add),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
+                receiptSourceDropdown()
             }
         }
 
         // ── Save ──────────────────────────────────────────────────────
+        val isSaveable = description.isNotBlank() &&
+            (type != RecordType.MAINTENANCE || km.isNotBlank())
+
         Spacer(modifier = Modifier.height(4.dp))
         Button(
             onClick = {
@@ -494,6 +582,7 @@ fun AddMaintenanceRecordSheet(
                     )
                 }
             },
+            enabled = isSaveable,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 10.dp)
@@ -556,4 +645,5 @@ private fun RecordType.labelRes(): Int = when (this) {
     RecordType.MAINTENANCE -> R.string.record_type_maintenance
     RecordType.REPAIR -> R.string.record_type_repair
     RecordType.WEAR -> R.string.record_type_wear
+    RecordType.UPGRADE -> R.string.record_type_upgrade
 }

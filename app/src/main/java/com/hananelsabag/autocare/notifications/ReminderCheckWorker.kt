@@ -68,7 +68,7 @@ class ReminderCheckWorker @AssistedInject constructor(
                     ReminderType.TEST_EXPIRY ->
                         car.testExpiryDate ?: return@forEach
 
-                    ReminderType.INSURANCE_COMPULSORY_EXPIRY ->
+                    ReminderType.INSURANCE_EXPIRY ->
                         car.insuranceExpiryDate ?: return@forEach
 
                     ReminderType.SERVICE_DATE -> {
@@ -98,7 +98,7 @@ class ReminderCheckWorker @AssistedInject constructor(
         val typeLabel = when (type) {
             ReminderType.TEST_EXPIRY ->
                 context.getString(R.string.reminder_type_test_expiry)
-            ReminderType.INSURANCE_COMPULSORY_EXPIRY ->
+            ReminderType.INSURANCE_EXPIRY ->
                 context.getString(R.string.reminder_type_insurance_compulsory)
             ReminderType.SERVICE_DATE ->
                 context.getString(R.string.reminder_type_service_date)

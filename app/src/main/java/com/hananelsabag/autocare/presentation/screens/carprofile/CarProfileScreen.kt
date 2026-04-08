@@ -20,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Edit
@@ -30,6 +29,7 @@ import androidx.compose.material.icons.outlined.AttachMoney
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.NotificationsNone
@@ -42,8 +42,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -54,6 +56,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -98,7 +101,6 @@ fun CarProfileScreen(
     carId: Int,
     onBack: () -> Unit,
     onMaintenanceHistory: () -> Unit,
-    onTestHistory: () -> Unit,
     onDocuments: () -> Unit,
     onReminders: () -> Unit
 ) {
@@ -106,9 +108,12 @@ fun CarProfileScreen(
     val addCarViewModel = hiltViewModel<AddCarViewModel>()
     val car by viewModel.car.collectAsState()
     val stats by viewModel.stats.collectAsState()
+    val detailedStats by viewModel.detailedStats.collectAsState()
+    val nextServiceDueMs by viewModel.nextServiceDueMs.collectAsState()
 
     var showEditSheet by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showStatsSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(carId) { viewModel.init(carId) }
 
@@ -188,7 +193,7 @@ fun CarProfileScreen(
                 // ── Status section ──────────────────────────────────────
                 SectionLabel(stringResource(R.string.car_profile_status_section))
                 Spacer(modifier = Modifier.height(8.dp))
-                StatusBanner(car = currentCar)
+                StatusBanner(car = currentCar, nextServiceDueMs = nextServiceDueMs)
 
                 Spacer(modifier = Modifier.height(20.dp))
 
@@ -204,7 +209,6 @@ fun CarProfileScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 ActionTilesGrid(
                     onMaintenanceHistory = onMaintenanceHistory,
-                    onTestHistory = onTestHistory,
                     onDocuments = onDocuments,
                     onReminders = onReminders
                 )
@@ -214,7 +218,8 @@ fun CarProfileScreen(
                 // ── Stats or first-service CTA ──────────────────────────
                 StatsSection(
                     stats = stats,
-                    onAddFirstService = onMaintenanceHistory
+                    onAddFirstService = onMaintenanceHistory,
+                    onViewStats = { showStatsSheet = true }
                 )
 
                 // ── Notes ───────────────────────────────────────────────
@@ -249,6 +254,17 @@ fun CarProfileScreen(
                     showEditSheet = false
                 }
             )
+        }
+    }
+
+    // ── Stats Sheet ─────────────────────────────────────────────────────
+    if (showStatsSheet && detailedStats != null) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showStatsSheet = false },
+            sheetState = sheetState
+        ) {
+            CarStatsSheet(stats = detailedStats!!)
         }
     }
 
@@ -439,7 +455,7 @@ private fun CarHeroSection(car: Car, topBarPadding: Dp) {
 // ── Status banner — two individual mini-cards ─────────────────────────────────
 
 @Composable
-private fun StatusBanner(car: Car) {
+private fun StatusBanner(car: Car, nextServiceDueMs: Long?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -457,6 +473,12 @@ private fun StatusBanner(car: Car) {
             label = stringResource(R.string.car_profile_insurance_expiry),
             expiryMs = car.insuranceExpiryDate,
             level = getStatusLevel(car.insuranceExpiryDate)
+        )
+        StatusMiniCard(
+            icon = Icons.Outlined.Build,
+            label = stringResource(R.string.car_profile_service_status),
+            expiryMs = nextServiceDueMs,
+            level = getStatusLevel(nextServiceDueMs)
         )
     }
 }
@@ -684,48 +706,36 @@ private fun DetailStatItem(icon: ImageVector, label: String, value: String) {
 @Composable
 private fun ActionTilesGrid(
     onMaintenanceHistory: () -> Unit,
-    onTestHistory: () -> Unit,
     onDocuments: () -> Unit,
     onReminders: () -> Unit
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ActionTile(
-                icon = Icons.Filled.History,
-                label = stringResource(R.string.car_profile_maintenance_history),
-                onClick = onMaintenanceHistory,
-                isPrimary = true,
-                modifier = Modifier.weight(1f)
-            )
-            ActionTile(
-                icon = Icons.Filled.AssignmentTurnedIn,
-                label = stringResource(R.string.car_profile_test_history),
-                onClick = onTestHistory,
-                isPrimary = false,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ActionTile(
-                icon = Icons.Outlined.Description,
-                label = stringResource(R.string.car_profile_documents),
-                onClick = onDocuments,
-                isPrimary = false,
-                modifier = Modifier.weight(1f)
-            )
-            ActionTile(
-                icon = Icons.Outlined.NotificationsNone,
-                label = stringResource(R.string.car_profile_reminders),
-                onClick = onReminders,
-                isPrimary = false,
-                modifier = Modifier.weight(1f)
-            )
-        }
+        ActionTile(
+            icon = Icons.Filled.History,
+            label = stringResource(R.string.car_profile_maintenance_history),
+            onClick = onMaintenanceHistory,
+            isPrimary = true,
+            modifier = Modifier.weight(1f)
+        )
+        ActionTile(
+            icon = Icons.Outlined.Description,
+            label = stringResource(R.string.car_profile_documents),
+            onClick = onDocuments,
+            isPrimary = false,
+            modifier = Modifier.weight(1f)
+        )
+        ActionTile(
+            icon = Icons.Outlined.NotificationsNone,
+            label = stringResource(R.string.car_profile_reminders),
+            onClick = onReminders,
+            isPrimary = false,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -781,11 +791,11 @@ private fun ActionTile(
 // ── Stats section ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun StatsSection(stats: CarStats?, onAddFirstService: () -> Unit) {
-    if (stats == null || stats.totalRecords < 2) {
-        FirstServiceCtaCard(onClick = onAddFirstService)
-    } else {
-        CarStatsCard(stats = stats)
+private fun StatsSection(stats: CarStats?, onAddFirstService: () -> Unit, onViewStats: () -> Unit) {
+    when {
+        stats == null -> FirstServiceCtaCard(onClick = onAddFirstService)
+        stats.totalRecords < 2 -> OneMoreServiceCtaCard(onClick = onAddFirstService)
+        else -> CarStatsCard(stats = stats, onClick = onViewStats)
     }
 }
 
@@ -846,8 +856,152 @@ private fun FirstServiceCtaCard(onClick: () -> Unit) {
 }
 
 @Composable
-private fun CarStatsCard(stats: CarStats) {
+private fun OneMoreServiceCtaCard(onClick: () -> Unit) {
     Card(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.40f)
+        ),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+
+            // ── Header ────────────────────────────────────────────────
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Analytics,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .size(22.dp)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.car_profile_one_service_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.car_profile_one_service_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // ── Progress bar ──────────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                LinearProgressIndicator(
+                    progress = { 0.5f },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(6.dp)
+                        .clip(MaterialTheme.shapes.small),
+                    color = MaterialTheme.colorScheme.secondary,
+                    trackColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+                Text(
+                    text = stringResource(R.string.car_profile_one_service_progress),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ── Locked stats preview ──────────────────────────────────
+            Text(
+                text = stringResource(R.string.car_profile_one_service_unlocks),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                LockedStatChip(
+                    label = stringResource(R.string.stats_last_service),
+                    modifier = Modifier.weight(1f)
+                )
+                LockedStatChip(
+                    label = stringResource(R.string.stats_spent_this_year),
+                    modifier = Modifier.weight(1f)
+                )
+                LockedStatChip(
+                    label = stringResource(R.string.stats_average_cost),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LockedStatChip(label: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+        shape = MaterialTheme.shapes.small
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                modifier = Modifier.size(10.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun CarStatsCard(stats: CarStats, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
@@ -857,13 +1011,24 @@ private fun CarStatsCard(stats: CarStats) {
         shape = MaterialTheme.shapes.large
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = stringResource(R.string.stats_section_title),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.padding(bottom = 14.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.stats_section_title),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                Text(
+                    text = stringResource(R.string.stats_tap_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
+                )
+            }
+            Spacer(modifier = Modifier.height(14.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,

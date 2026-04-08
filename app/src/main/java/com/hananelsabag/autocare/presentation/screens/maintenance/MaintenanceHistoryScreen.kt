@@ -1,13 +1,21 @@
 package com.hananelsabag.autocare.presentation.screens.maintenance
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,13 +32,16 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.BuildCircle
 import androidx.compose.material.icons.outlined.CarRepair
+import androidx.compose.material.icons.outlined.Upgrade
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
@@ -64,6 +75,7 @@ import coil3.compose.AsyncImage
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.data.local.entities.MaintenanceRecord
@@ -86,7 +98,28 @@ fun MaintenanceHistoryScreen(carId: Int, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.maintenance_history_title)) },
+                title = {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.maintenance_history_title),
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        AnimatedVisibility(
+                            visible = records.isNotEmpty(),
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            Text(
+                                text = if (records.size == 1)
+                                    stringResource(R.string.maintenance_history_subtitle_single)
+                                else
+                                    stringResource(R.string.maintenance_history_subtitle_plural, records.size),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.content_description_back))
@@ -206,68 +239,94 @@ private fun MaintenanceRecordCard(record: MaintenanceRecord, onClick: () -> Unit
     val accentColor = record.type.accentColor()
     val iconVector = record.type.iconVector()
 
-    Card(
+    ElevatedCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        shape = MaterialTheme.shapes.large
+        shape = MaterialTheme.shapes.large,
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.Top
         ) {
-            // Left type accent bar
+            // Full-height accent bar
             Box(
                 modifier = Modifier
                     .width(5.dp)
-                    .height(80.dp)
+                    .fillMaxHeight()
                     .background(accentColor)
             )
 
-            // Type icon square
+            // Type icon
             Surface(
                 shape = MaterialTheme.shapes.small,
                 color = accentColor.copy(alpha = 0.15f),
                 modifier = Modifier
-                    .padding(start = 12.dp, top = 12.dp, bottom = 12.dp)
-                    .size(44.dp)
+                    .padding(start = 12.dp, top = 14.dp, bottom = 14.dp)
+                    .size(46.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = iconVector,
                         contentDescription = null,
                         tint = accentColor,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
+            // Main content
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(top = 12.dp, bottom = 12.dp)
+                    .padding(top = 14.dp, bottom = 14.dp)
             ) {
                 Text(
                     text = record.description,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(3.dp))
-                Text(
-                    text = record.date.toFormattedDate(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // Date + KM on same row
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = record.date.toFormattedDate(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    record.km?.let { km ->
+                        Text(
+                            text = "·",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = stringResource(R.string.record_km_format, km.toString()),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
+            // Right side: type badge + cost + receipt thumbnail
             Column(
                 horizontalAlignment = Alignment.End,
-                modifier = Modifier.padding(end = 14.dp, top = 12.dp, bottom = 12.dp)
+                modifier = Modifier.padding(end = 12.dp, top = 14.dp, bottom = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Surface(
                     color = accentColor.copy(alpha = 0.12f),
@@ -277,16 +336,40 @@ private fun MaintenanceRecordCard(record: MaintenanceRecord, onClick: () -> Unit
                         text = stringResource(record.type.labelRes()),
                         style = MaterialTheme.typography.labelSmall,
                         color = accentColor,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                     )
                 }
                 record.costAmount?.let { cost ->
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = stringResource(R.string.record_cost_format, cost.formatCost()),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+                }
+                record.receiptUri?.let { uri ->
+                    val ctx = LocalContext.current
+                    val isPdf = remember(uri) {
+                        runCatching { ctx.contentResolver.getType(Uri.parse(uri)) }
+                            .getOrNull()?.startsWith("image/") == false
+                    }
+                    if (isPdf) {
+                        Icon(
+                            imageVector = Icons.Filled.PictureAsPdf,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    } else {
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(MaterialTheme.shapes.small)
+                        )
+                    }
                 }
             }
         }
@@ -306,70 +389,204 @@ private fun RecordDetailSheet(
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp)
             .padding(bottom = 24.dp)
     ) {
-        // Title row
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // ── Accent header ─────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Surface(
-                shape = MaterialTheme.shapes.small,
+                shape = MaterialTheme.shapes.medium,
                 color = accentColor.copy(alpha = 0.15f),
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(48.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = record.type.iconVector(),
                         contentDescription = null,
                         tint = accentColor,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = stringResource(record.type.labelRes()), style = MaterialTheme.typography.labelMedium, color = accentColor)
-                Text(text = record.description, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                Surface(
+                    color = accentColor.copy(alpha = 0.12f),
+                    shape = MaterialTheme.shapes.extraSmall
+                ) {
+                    Text(
+                        text = stringResource(record.type.labelRes()),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = accentColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = record.description,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        HorizontalDivider()
-        Spacer(modifier = Modifier.height(16.dp))
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp))
 
-        DetailRow(label = stringResource(R.string.record_detail_date), value = record.date.toFormattedDate())
-        record.km?.let { km -> DetailRow(label = stringResource(R.string.record_detail_km), value = stringResource(R.string.record_km_format, km)) }
-        record.costAmount?.let { cost -> DetailRow(label = stringResource(R.string.record_detail_cost), value = stringResource(R.string.record_cost_format, cost.formatCost())) }
-        record.notes?.let { notes -> DetailRow(label = stringResource(R.string.record_detail_notes), value = notes) }
-
-        // ── Receipt photo ────────────────────────────────────────
-        record.receiptUri?.let { uri ->
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.record_receipt_label),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            AsyncImage(
-                model = uri,
-                contentDescription = stringResource(R.string.record_receipt_label),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(MaterialTheme.shapes.large)
-            )
+        // ── Detail grid ───────────────────────────────────────────
+        ElevatedCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            shape = MaterialTheme.shapes.large,
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                DetailRow(label = stringResource(R.string.record_detail_date), value = record.date.toFormattedDate())
+                record.km?.let { km ->
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    DetailRow(label = stringResource(R.string.record_detail_km), value = stringResource(R.string.record_km_format, km))
+                }
+                record.costAmount?.let { cost ->
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    DetailRow(label = stringResource(R.string.record_detail_cost), value = stringResource(R.string.record_cost_format, cost.formatCost()))
+                }
+                record.notes?.let { notes ->
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    DetailRow(label = stringResource(R.string.record_detail_notes), value = notes)
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        // ── Receipt / document attachment ─────────────────────────
+        record.receiptUri?.let { uriStr ->
+            val context = LocalContext.current
+            val parsedUri = remember(uriStr) { Uri.parse(uriStr) }
+            val mimeType = remember(uriStr) {
+                runCatching { context.contentResolver.getType(parsedUri) }.getOrNull() ?: "image/*"
+            }
+            val isImage = mimeType.startsWith("image/")
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            FilledTonalButton(onClick = onEdit, modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.record_receipt_label),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 6.dp)
+            )
+
+            if (isImage) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .height(180.dp)
+                        .clip(MaterialTheme.shapes.large)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    AsyncImage(
+                        model = parsedUri,
+                        contentDescription = stringResource(R.string.record_receipt_label),
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            } else {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PictureAsPdf,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = stringResource(R.string.documents_pdf_file),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            // Open button — same for both image and PDF
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ) {
+                FilledTonalButton(
+                    onClick = {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(parsedUri, mimeType)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(intent)
+                        } catch (_: ActivityNotFoundException) { }
+                    },
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.OpenInNew,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(R.string.documents_open_file),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // ── Action buttons ────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(top = if (record.receiptUri == null) 4.dp else 0.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            FilledTonalButton(onClick = onEdit, modifier = Modifier.weight(1f), shape = MaterialTheme.shapes.large) {
                 Icon(imageVector = Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(stringResource(R.string.btn_edit))
             }
-            OutlinedButton(onClick = onDelete, modifier = Modifier.weight(1f)) {
+            OutlinedButton(onClick = onDelete, modifier = Modifier.weight(1f), shape = MaterialTheme.shapes.large) {
                 Icon(imageVector = Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(text = stringResource(R.string.btn_delete), color = MaterialTheme.colorScheme.error)
@@ -380,9 +597,26 @@ private fun RecordDetailSheet(
 
 @Composable
 private fun DetailRow(label: String, value: String) {
-    Column(modifier = Modifier.padding(vertical = 6.dp)) {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 7.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(0.4f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(0.6f),
+            textAlign = TextAlign.End
+        )
     }
 }
 
@@ -390,6 +624,7 @@ private fun RecordType.labelRes(): Int = when (this) {
     RecordType.MAINTENANCE -> R.string.record_type_maintenance
     RecordType.REPAIR -> R.string.record_type_repair
     RecordType.WEAR -> R.string.record_type_wear
+    RecordType.UPGRADE -> R.string.record_type_upgrade
 }
 
 @Composable
@@ -397,12 +632,14 @@ private fun RecordType.accentColor() = when (this) {
     RecordType.MAINTENANCE -> MaterialTheme.colorScheme.primary
     RecordType.REPAIR -> MaterialTheme.colorScheme.error
     RecordType.WEAR -> MaterialTheme.colorScheme.tertiary
+    RecordType.UPGRADE -> MaterialTheme.colorScheme.secondary
 }
 
 private fun RecordType.iconVector(): ImageVector = when (this) {
     RecordType.MAINTENANCE -> Icons.Outlined.Build
     RecordType.REPAIR -> Icons.Outlined.CarRepair
     RecordType.WEAR -> Icons.Outlined.Autorenew
+    RecordType.UPGRADE -> Icons.Outlined.Upgrade
 }
 
 private fun Double.formatCost(): String =
