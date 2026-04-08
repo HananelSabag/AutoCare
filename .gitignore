@@ -1,15 +1,25 @@
+## Android / Gradle
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+.gradle/
+/build/
+/app/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+
+## Local config
 local.properties
+
+## IntelliJ / Android Studio
+/.idea/
+!/.idea/codeStyles/
+!/.idea/inspectionProfiles/
+
+## macOS
+.DS_Store
+Thumbs.db
+
+## Keys / secrets
+*.keystore
+*.jks
+google-services.json
