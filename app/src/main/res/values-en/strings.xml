@@ -267,6 +267,23 @@
     <string name="settings_about_developer">Developed by</string>
     <string name="settings_about_developer_name">Hananel Sabag</string>
 
+    <!-- Export -->
+    <string name="export_pdf_generating">Generating PDF…</string>
+    <string name="export_json_generating">Generating backup…</string>
+    <string name="export_error">Export failed. Please try again.</string>
+    <string name="export_pick_car_title">Select Car to Export</string>
+    <string name="export_no_cars">No cars to export</string>
+    <string name="export_receipt_attached">Receipt attached ✓</string>
+    <string name="export_test_passed">Passed</string>
+    <string name="export_test_failed">Failed</string>
+    <string name="export_generated_at">Generated: %s</string>
+    <string name="export_section_maintenance">Periodic Services</string>
+    <string name="export_section_repair">Repairs</string>
+    <string name="export_section_wear">Wear Items</string>
+    <string name="export_section_test_history">Test History</string>
+    <string name="export_total_cost">Total: ₪%s</string>
+    <string name="export_no_records">No records to export</string>
+
     <!-- General -->
     <string name="coming_soon">Coming Soon…</string>
     <string name="content_description_car_photo">Car photo</string>

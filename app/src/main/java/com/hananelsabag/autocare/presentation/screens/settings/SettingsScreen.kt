@@ -1,6 +1,7 @@
 package com.hananelsabag.autocare.presentation.screens.settings
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -39,16 +40,22 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,20 +68,31 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hananelsabag.autocare.BuildConfig
 import com.hananelsabag.autocare.R
+import com.hananelsabag.autocare.data.local.entities.Car
 import com.hananelsabag.autocare.presentation.theme.ThemeMode
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen() {
     val viewModel = hiltViewModel<SettingsViewModel>()
+    val exportViewModel = hiltViewModel<ExportViewModel>()
+
     val themeMode by viewModel.themeMode.collectAsState()
     val language by viewModel.language.collectAsState()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val cars by exportViewModel.cars.collectAsState()
+    val exportState by exportViewModel.uiState.collectAsState()
+
+    val carPickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var notificationsGranted by remember {
         mutableStateOf(
@@ -90,11 +108,28 @@ fun SettingsScreen() {
         ActivityResultContracts.RequestPermission()
     ) { granted -> notificationsGranted = granted }
 
+    // Collect share intents and launch them
+    LaunchedEffect(exportViewModel) {
+        exportViewModel.shareIntent.collect { intent ->
+            context.startActivity(Intent.createChooser(intent, null))
+        }
+    }
+
+    // Show error snackbar
+    val errorMsg = stringResource(R.string.export_error)
+    LaunchedEffect(exportState.error) {
+        if (exportState.error != null) {
+            snackbarHostState.showSnackbar(errorMsg)
+            exportViewModel.clearError()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text(stringResource(R.string.screen_settings_title)) })
         },
-        contentWindowInsets = WindowInsets(0)
+        contentWindowInsets = WindowInsets(0),
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -124,7 +159,6 @@ fun SettingsScreen() {
                                     style = MaterialTheme.typography.labelMedium
                                 )
                             },
-                            // Always show the mode icon — selection is indicated by chip style
                             leadingIcon = {
                                 Icon(
                                     imageVector = choice.icon,
@@ -228,22 +262,32 @@ fun SettingsScreen() {
                 icon = Icons.Outlined.FileDownload
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // PDF — active
                     ExportRow(
                         icon = Icons.Outlined.Description,
                         label = stringResource(R.string.settings_export_pdf),
-                        description = stringResource(R.string.settings_export_pdf_desc)
+                        description = stringResource(R.string.settings_export_pdf_desc),
+                        isLoading = exportState.isGeneratingPdf,
+                        isComingSoon = false,
+                        onClick = { exportViewModel.onPdfExportRequested() }
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                    // Excel — still coming soon
                     ExportRow(
                         icon = Icons.Outlined.GridOn,
                         label = stringResource(R.string.settings_export_excel),
-                        description = stringResource(R.string.settings_export_excel_desc)
+                        description = stringResource(R.string.settings_export_excel_desc),
+                        isComingSoon = true
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                    // JSON — active
                     ExportRow(
                         icon = Icons.Outlined.FileDownload,
                         label = stringResource(R.string.settings_export_json),
-                        description = stringResource(R.string.settings_export_json_desc)
+                        description = stringResource(R.string.settings_export_json_desc),
+                        isLoading = exportState.isGeneratingJson,
+                        isComingSoon = false,
+                        onClick = { exportViewModel.onJsonExportRequested() }
                     )
                 }
             }
@@ -259,7 +303,6 @@ fun SettingsScreen() {
                     value = BuildConfig.VERSION_NAME
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                // Developer row — tappable (ripple only, no action)
                 SettingsInfoRow(
                     icon = Icons.Outlined.Person,
                     label = stringResource(R.string.settings_about_developer),
@@ -269,6 +312,94 @@ fun SettingsScreen() {
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+
+    // ── Car Picker Bottom Sheet ────────────────────────────────────────────────
+    if (exportState.showCarPicker) {
+        ModalBottomSheet(
+            onDismissRequest = { exportViewModel.dismissCarPicker() },
+            sheetState = carPickerSheetState
+        ) {
+            CarPickerSheetContent(
+                cars = cars,
+                onCarSelected = { exportViewModel.onCarSelectedForPdf(it) }
+            )
+        }
+    }
+
+    // ── Loading Dialog ────────────────────────────────────────────────────────
+    if (exportState.isGeneratingPdf || exportState.isGeneratingJson) {
+        Dialog(onDismissRequest = {}) {
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                    Text(
+                        text = if (exportState.isGeneratingPdf)
+                            stringResource(R.string.export_pdf_generating)
+                        else
+                            stringResource(R.string.export_json_generating),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Car Picker Sheet Content ──────────────────────────────────────────────────
+
+@Composable
+private fun CarPickerSheetContent(
+    cars: List<Car>,
+    onCarSelected: (Int) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 32.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.export_pick_car_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+        )
+        HorizontalDivider()
+        cars.forEach { car ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onCarSelected(car.id) }
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "${car.make} ${car.model}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = "${car.year} · ${car.licensePlate}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Outlined.Description,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp))
         }
     }
 }
@@ -360,15 +491,33 @@ private fun SettingsInfoRow(
 // ── Export row ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun ExportRow(icon: ImageVector, label: String, description: String) {
+private fun ExportRow(
+    icon: ImageVector,
+    label: String,
+    description: String,
+    isComingSoon: Boolean = false,
+    isLoading: Boolean = false,
+    onClick: (() -> Unit)? = null
+) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onClick != null && !isComingSoon && !isLoading)
+                    Modifier.clickable { onClick() }
+                else
+                    Modifier
+            )
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = if (isComingSoon)
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            else
+                MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
@@ -376,7 +525,10 @@ private fun ExportRow(icon: ImageVector, label: String, description: String) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = if (isComingSoon)
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                else
+                    MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = description,
@@ -385,13 +537,16 @@ private fun ExportRow(icon: ImageVector, label: String, description: String) {
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
-        // Lock icon badge — clearly signals this feature is locked
-        Icon(
-            imageVector = Icons.Outlined.Lock,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f),
-            modifier = Modifier.size(18.dp)
-        )
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+        } else if (isComingSoon) {
+            Icon(
+                imageVector = Icons.Outlined.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f),
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }
 

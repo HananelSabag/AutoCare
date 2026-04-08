@@ -267,6 +267,23 @@
     <string name="settings_about_developer">פותח על ידי</string>
     <string name="settings_about_developer_name">חננאל סבג</string>
 
+    <!-- Export -->
+    <string name="export_pdf_generating">מייצא PDF…</string>
+    <string name="export_json_generating">מייצא גיבוי…</string>
+    <string name="export_error">שגיאה בייצוא. נסה שוב.</string>
+    <string name="export_pick_car_title">בחר רכב לייצוא</string>
+    <string name="export_no_cars">אין רכבים לייצוא</string>
+    <string name="export_receipt_attached">קבלה מצורפת ✓</string>
+    <string name="export_test_passed">עבר</string>
+    <string name="export_test_failed">נכשל</string>
+    <string name="export_generated_at">הופק ב: %s</string>
+    <string name="export_section_maintenance">טיפולים תקופתיים</string>
+    <string name="export_section_repair">תיקונים</string>
+    <string name="export_section_wear">בלאי</string>
+    <string name="export_section_test_history">היסטוריית טסטים</string>
+    <string name="export_total_cost">סה"כ: ₪%s</string>
+    <string name="export_no_records">אין רשומות לייצוא</string>
+
     <!-- General -->
     <string name="coming_soon">בקרוב…</string>
     <string name="content_description_car_photo">תמונת הרכב</string>
