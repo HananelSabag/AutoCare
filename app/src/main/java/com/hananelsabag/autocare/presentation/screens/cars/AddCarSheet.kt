@@ -6,6 +6,9 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +24,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -30,10 +34,9 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.outlined.PhotoLibrary
-import androidx.core.content.FileProvider
-import java.io.File
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -81,12 +84,15 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import coil3.compose.AsyncImage
 import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.presentation.components.ImageCropSheet
 import com.hananelsabag.autocare.util.CAR_MAKES
+import com.hananelsabag.autocare.util.ThousandsVisualTransformation
 import com.hananelsabag.autocare.util.modelsForMake
 import com.hananelsabag.autocare.util.toFormattedDate
+import java.io.File
 
 // ── Color data ───────────────────────────────────────────────────────────────
 
@@ -194,7 +200,7 @@ fun AddCarSheetContent(
                     it, Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             } catch (_: Exception) { }
-            pendingCropUri = it  // open crop sheet instead of setting directly
+            pendingCropUri = it
         }
     }
 
@@ -251,7 +257,7 @@ fun AddCarSheetContent(
             }
         }
 
-        // ── Photo picker — premium, inviting ─────────────────────────
+        // ── Photo picker ─────────────────────────────────────────────
         Box(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
@@ -276,7 +282,6 @@ fun AddCarSheetContent(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-                // Subtle overlay + change label
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -342,7 +347,6 @@ fun AddCarSheetContent(
                 }
             }
 
-            // Source picker menu — anchors to this Box
             DropdownMenu(
                 expanded = showPhotoSourceMenu,
                 onDismissRequest = { showPhotoSourceMenu = false }
@@ -370,7 +374,12 @@ fun AddCarSheetContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        // ── Color strip — compact, right below photo ──────────────────
+        CompactColorStrip(
+            selectedColor = viewModel.color,
+            onColorSelected = { viewModel.color = it },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+        )
 
         // ── Required fields ──────────────────────────────────────────
         SectionHeader(stringResource(R.string.add_car_section_required))
@@ -411,7 +420,8 @@ fun AddCarSheetContent(
                     expanded = makeExpanded,
                     onDismissRequest = { makeExpanded = false }
                 ) {
-                    filteredMakes.take(8).forEach { make ->
+                    val displayMakes = filteredMakes.take(10)
+                    displayMakes.forEach { make ->
                         DropdownMenuItem(
                             text = { Text(make, style = MaterialTheme.typography.bodyMedium) },
                             onClick = {
@@ -419,6 +429,19 @@ fun AddCarSheetContent(
                                 viewModel.model = ""
                                 makeExpanded = false
                             }
+                        )
+                    }
+                    if (filteredMakes.size > 10) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "ועוד ${filteredMakes.size - 10}…",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            onClick = { makeExpanded = false },
+                            enabled = false
                         )
                     }
                 }
@@ -470,7 +493,8 @@ fun AddCarSheetContent(
                     expanded = modelExpanded,
                     onDismissRequest = { modelExpanded = false }
                 ) {
-                    filteredModels.take(8).forEach { model ->
+                    val displayModels = filteredModels.take(10)
+                    displayModels.forEach { model ->
                         DropdownMenuItem(
                             text = { Text(model, style = MaterialTheme.typography.bodyMedium) },
                             onClick = {
@@ -479,13 +503,26 @@ fun AddCarSheetContent(
                             }
                         )
                     }
+                    if (filteredModels.size > 10) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "ועוד ${filteredModels.size - 10}…",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            onClick = { modelExpanded = false },
+                            enabled = false
+                        )
+                    }
                 }
             }
         }
 
-        // Year quick-pick chips
+        // Year quick-pick chips — last 7 years
         val currentYear = remember { java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) }
-        val yearChips = remember(currentYear) { (0..4).map { (currentYear - it).toString() } }
+        val yearChips = remember(currentYear) { (0..6).map { (currentYear - it).toString() } }
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
@@ -501,7 +538,7 @@ fun AddCarSheetContent(
             }
         }
 
-        // Year + License plate
+        // Year + License plate row
         Row(
             modifier = Modifier
                 .padding(horizontal = 16.dp, vertical = 4.dp)
@@ -510,7 +547,7 @@ fun AddCarSheetContent(
         ) {
             CarFormField(
                 value = viewModel.year,
-                onValueChange = { if (it.length <= 4) viewModel.year = it },
+                onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) viewModel.year = it },
                 label = stringResource(R.string.add_car_year),
                 error = viewModel.yearError,
                 keyboardType = KeyboardType.Number,
@@ -531,25 +568,17 @@ fun AddCarSheetContent(
         // ── Optional fields ──────────────────────────────────────────
         SectionHeader(stringResource(R.string.add_car_section_optional))
 
-        // Color picker
-        Text(
-            text = stringResource(R.string.add_car_color_picker_label),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 2.dp)
-        )
-        ColorCirclePicker(
-            selectedColor = viewModel.color,
-            onColorSelected = { viewModel.color = it }
-        )
-
-        // KM field
+        // KM field — digits only, max 6, thousands formatting, helper text
         CarFormField(
             value = viewModel.currentKm,
-            onValueChange = { viewModel.currentKm = it },
+            onValueChange = { input ->
+                val digits = input.filter { it.isDigit() }.take(6)
+                viewModel.currentKm = digits
+            },
             label = stringResource(R.string.add_car_current_km),
+            supportingText = stringResource(R.string.add_car_km_supporting),
             keyboardType = KeyboardType.Number,
+            visualTransformation = ThousandsVisualTransformation,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp)
@@ -573,15 +602,28 @@ fun AddCarSheetContent(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
 
-        // ── Notes ────────────────────────────────────────────────────
-        CarFormField(
+        // ── Notes — with character counter ───────────────────────────
+        val notesMaxLength = 500
+        OutlinedTextField(
             value = viewModel.notes,
-            onValueChange = { viewModel.notes = it },
-            label = stringResource(R.string.add_car_notes),
-            imeAction = ImeAction.Done,
+            onValueChange = { if (it.length <= notesMaxLength) viewModel.notes = it },
+            label = { Text(stringResource(R.string.add_car_notes)) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             maxLines = 4,
             minLines = 3,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            supportingText = {
+                Text(
+                    text = "${viewModel.notes.length}/$notesMaxLength",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.End,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            shape = MaterialTheme.shapes.medium
         )
 
         // ── Save ─────────────────────────────────────────────────────
@@ -627,76 +669,142 @@ fun AddCarSheetContent(
     }
 }
 
-// ── Color circle picker ───────────────────────────────────────────────────────
+// ── Compact color strip — placed right below the photo ───────────────────────
 
 @Composable
-private fun ColorCirclePicker(
+private fun CompactColorStrip(
     selectedColor: String,
-    onColorSelected: (String) -> Unit
+    onColorSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    var showCustomField by remember { mutableStateOf(false) }
 
-    // Circles — wrap across rows (no horizontal scrolling)
-    FlowRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        CAR_COLOR_OPTIONS.forEach { option ->
-            val isSelected = selectedColor.equals(option.key, ignoreCase = true)
-            ColorCircle(
-                option = option,
-                isSelected = isSelected,
-                onClick = { onColorSelected(option.key) }  // store English key
+    // If the current color is not a known key, we're in "custom" mode
+    val isCustom = selectedColor.isNotBlank() &&
+        CAR_COLOR_OPTIONS.none { it.key.equals(selectedColor, ignoreCase = true) }
+
+    // Show custom field if the stored value is already custom, or user tapped "אחר"
+    val customFieldVisible = showCustomField || isCustom
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        // Row: label + selected color name
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.add_car_color_picker_label),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            // Show selected color name as a small chip
+            if (selectedColor.isNotBlank()) {
+                val displayName = CAR_COLOR_OPTIONS
+                    .find { it.key.equals(selectedColor, ignoreCase = true) }
+                    ?.let { context.getString(it.nameRes) }
+                    ?: selectedColor
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MaterialTheme.shapes.extraLarge
+                ) {
+                    Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Circles + "other" button
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            CAR_COLOR_OPTIONS.forEach { option ->
+                val isSelected = selectedColor.equals(option.key, ignoreCase = true)
+                CompactColorCircle(
+                    option = option,
+                    isSelected = isSelected,
+                    onClick = {
+                        onColorSelected(option.key)
+                        showCustomField = false
+                    }
+                )
+            }
+            // "אחר" button — pen icon, shows text field
+            val isOtherActive = customFieldVisible
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isOtherActive) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceContainerHighest
+                    )
+                    .clickable {
+                        showCustomField = !showCustomField
+                        if (!showCustomField && isCustom) onColorSelected("")
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = stringResource(R.string.add_car_color_other),
+                    tint = if (isOtherActive) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        // Animated custom text field
+        AnimatedVisibility(
+            visible = customFieldVisible,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            OutlinedTextField(
+                value = if (isCustom) selectedColor else "",
+                onValueChange = { typed ->
+                    val matched = CAR_COLOR_OPTIONS.firstOrNull { option ->
+                        context.getString(option.nameRes).equals(typed, ignoreCase = true)
+                    }
+                    onColorSelected(matched?.key ?: typed)
+                },
+                label = { Text(stringResource(R.string.add_car_color)) },
+                placeholder = {
+                    Text(
+                        text = stringResource(R.string.add_car_color_custom_hint),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                shape = MaterialTheme.shapes.medium
             )
         }
     }
-
-    // Resolve display value: show localized name if key matches, otherwise show raw text
-    val localizedDisplay = remember(selectedColor) {
-        CAR_COLOR_OPTIONS.find { it.key.equals(selectedColor, ignoreCase = true) }
-            ?.let { context.getString(it.nameRes) }
-            ?: selectedColor
-    }
-
-    // Text field — always visible; shows localized name or custom entry
-    OutlinedTextField(
-        value = localizedDisplay,
-        onValueChange = { typed ->
-            // If the typed text matches a localized name → store its key; otherwise store as-is
-            val matched = CAR_COLOR_OPTIONS.firstOrNull { option ->
-                context.getString(option.nameRes).equals(typed, ignoreCase = true)
-            }
-            onColorSelected(matched?.key ?: typed)
-        },
-        label = { Text(stringResource(R.string.add_car_color)) },
-        placeholder = {
-            Text(
-                text = stringResource(R.string.add_car_color_custom_hint),
-                style = MaterialTheme.typography.bodySmall
-            )
-        },
-        singleLine = true,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        shape = MaterialTheme.shapes.medium
-    )
 }
 
 @Composable
-private fun ColorCircle(
+private fun CompactColorCircle(
     option: CarColorOption,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    // Outer ring: primary color when selected, subtle outline otherwise
-    // Inner swatch: the actual color, slightly inset to reveal the ring
     Box(
         modifier = Modifier
-            .size(44.dp)
+            .size(40.dp)
             .clip(CircleShape)
             .background(
                 if (isSelected) MaterialTheme.colorScheme.primary
@@ -707,16 +815,15 @@ private fun ColorCircle(
     ) {
         Box(
             modifier = Modifier
-                .size(if (isSelected) 34.dp else 38.dp)
+                .size(if (isSelected) 30.dp else 34.dp)
                 .clip(CircleShape)
                 .background(option.displayColor),
             contentAlignment = Alignment.Center
         ) {
             if (isSelected) {
-                // Scrim + check so it reads on any color
                 Box(
                     modifier = Modifier
-                        .size(20.dp)
+                        .size(18.dp)
                         .clip(CircleShape)
                         .background(Color.Black.copy(alpha = 0.25f)),
                     contentAlignment = Alignment.Center
@@ -725,7 +832,7 @@ private fun ColorCircle(
                         imageVector = Icons.Filled.Check,
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(13.dp)
+                        modifier = Modifier.size(12.dp)
                     )
                 }
             }
@@ -757,6 +864,7 @@ private fun CarFormField(
     label: String,
     modifier: Modifier = Modifier,
     error: FieldError? = null,
+    supportingText: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
     maxLines: Int = 1,
@@ -771,16 +879,28 @@ private fun CarFormField(
         isError = error != null,
         visualTransformation = visualTransformation,
         textStyle = textStyle,
-        supportingText = error?.let { err ->
-            {
-                Text(
-                    text = when (err) {
-                        FieldError.Required -> stringResource(R.string.error_field_required)
-                        FieldError.InvalidYear -> stringResource(R.string.error_year_invalid)
-                        FieldError.InvalidLicensePlate -> stringResource(R.string.error_invalid_license_plate)
-                    }
-                )
+        supportingText = when {
+            error != null -> {
+                {
+                    Text(
+                        text = when (error) {
+                            FieldError.Required -> stringResource(R.string.error_field_required)
+                            FieldError.InvalidYear -> stringResource(R.string.error_year_invalid)
+                            FieldError.InvalidLicensePlate -> stringResource(R.string.error_invalid_license_plate)
+                        }
+                    )
+                }
             }
+            supportingText != null -> {
+                {
+                    Text(
+                        text = supportingText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            else -> null
         },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
         singleLine = maxLines == 1,

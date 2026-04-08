@@ -71,6 +71,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -78,6 +79,7 @@ import coil3.compose.AsyncImage
 import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.data.local.entities.MaintenanceRecord
 import com.hananelsabag.autocare.data.local.entities.RecordType
+import com.hananelsabag.autocare.util.ThousandsVisualTransformation
 import com.hananelsabag.autocare.util.toFormattedDate
 import java.time.LocalDate
 import java.time.ZoneId
@@ -365,10 +367,11 @@ fun AddMaintenanceRecordSheet(
             }
         }
 
-        // Description text field with dynamic placeholder
+        // Description text field with dynamic placeholder + char counter
+        val descriptionMaxLength = 200
         OutlinedTextField(
             value = description,
-            onValueChange = { description = it; descriptionError = false },
+            onValueChange = { if (it.length <= descriptionMaxLength) { description = it; descriptionError = false } },
             label = { Text(stringResource(R.string.record_description)) },
             placeholder = {
                 Text(
@@ -378,9 +381,19 @@ fun AddMaintenanceRecordSheet(
                 )
             },
             isError = descriptionError,
-            supportingText = if (descriptionError) {
-                { Text(stringResource(R.string.error_field_required)) }
-            } else null,
+            supportingText = {
+                if (descriptionError) {
+                    Text(stringResource(R.string.error_field_required))
+                } else {
+                    Text(
+                        text = "${description.length}/$descriptionMaxLength",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.End,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             maxLines = 4,
             minLines = 2,
@@ -400,7 +413,11 @@ fun AddMaintenanceRecordSheet(
         ) {
             OutlinedTextField(
                 value = km,
-                onValueChange = { km = it; kmError = false },
+                onValueChange = { input ->
+                    val digits = input.filter { it.isDigit() }.take(6)
+                    km = digits
+                    kmError = false
+                },
                 label = {
                     Text(
                         if (type == RecordType.MAINTENANCE)
@@ -413,6 +430,7 @@ fun AddMaintenanceRecordSheet(
                 supportingText = if (kmError) {
                     { Text(stringResource(R.string.error_field_required)) }
                 } else null,
+                visualTransformation = ThousandsVisualTransformation,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
                     imeAction = ImeAction.Next
@@ -423,8 +441,14 @@ fun AddMaintenanceRecordSheet(
             )
             OutlinedTextField(
                 value = cost,
-                onValueChange = { cost = it },
+                onValueChange = { input ->
+                    // Allow digits and at most one decimal point, max 8 chars total
+                    val filtered = input.filter { it.isDigit() || it == '.' }
+                    val dotCount = filtered.count { it == '.' }
+                    if (dotCount <= 1 && filtered.length <= 8) cost = filtered
+                },
                 label = { Text(stringResource(R.string.record_cost_optional)) },
+                prefix = { Text("₪") },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
                     imeAction = ImeAction.Next
@@ -435,14 +459,24 @@ fun AddMaintenanceRecordSheet(
             )
         }
 
-        // ── Notes ─────────────────────────────────────────────────────
+        // ── Notes — with character counter ────────────────────────────
+        val notesMaxLength = 300
         OutlinedTextField(
             value = notes,
-            onValueChange = { notes = it },
+            onValueChange = { if (it.length <= notesMaxLength) notes = it },
             label = { Text(stringResource(R.string.record_notes)) },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             maxLines = 3,
             minLines = 2,
+            supportingText = {
+                Text(
+                    text = "${notes.length}/$notesMaxLength",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.End,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 6.dp),
@@ -573,8 +607,8 @@ fun AddMaintenanceRecordSheet(
                             type = type,
                             date = dateMs,
                             description = description.trim(),
-                            km = km.trim().toIntOrNull(),
-                            costAmount = cost.trim().toDoubleOrNull(),
+                            km = km.ifBlank { null }?.toIntOrNull(),
+                            costAmount = cost.trim().trimEnd('.').toDoubleOrNull(),
                             notes = notes.trim().ifBlank { null },
                             receiptUri = receiptUri,
                             createdAt = existingRecord?.createdAt ?: System.currentTimeMillis()

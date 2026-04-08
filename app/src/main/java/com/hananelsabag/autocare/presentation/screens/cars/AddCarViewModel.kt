@@ -104,9 +104,10 @@ class AddCarViewModel @Inject constructor(
         }
 
         val yearInt = year.toIntOrNull()
+        val maxYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) + 1
         when {
             year.isBlank() -> { yearError = FieldError.Required; valid = false }
-            yearInt == null || yearInt < 1900 || yearInt > 2030 -> {
+            yearInt == null || yearInt < 1900 || yearInt > maxYear -> {
                 yearError = FieldError.InvalidYear; valid = false
             }
         }
