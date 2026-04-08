@@ -2,6 +2,8 @@ package com.hananelsabag.autocare.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.hananelsabag.autocare.data.local.dao.CarDao
 import com.hananelsabag.autocare.data.local.dao.CarDocumentDao
 import com.hananelsabag.autocare.data.local.dao.MaintenanceRecordDao
@@ -34,6 +36,12 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "autocare.db")
             .fallbackToDestructiveMigration()
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    super.onOpen(db)
+                    db.execSQL("PRAGMA foreign_keys = ON")
+                }
+            })
             .build()
 
     @Provides

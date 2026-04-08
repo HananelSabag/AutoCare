@@ -232,13 +232,22 @@ fun CarProfileScreen(
     if (showEditSheet) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
-            onDismissRequest = { showEditSheet = false },
+            onDismissRequest = {
+                addCarViewModel.resetForm()
+                showEditSheet = false
+            },
             sheetState = sheetState
         ) {
             AddCarSheetContent(
                 viewModel = addCarViewModel,
-                onSaved = { showEditSheet = false },
-                onCancel = { showEditSheet = false }
+                onSaved = {
+                    addCarViewModel.resetForm()
+                    showEditSheet = false
+                },
+                onCancel = {
+                    addCarViewModel.resetForm()
+                    showEditSheet = false
+                }
             )
         }
     }

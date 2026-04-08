@@ -48,6 +48,7 @@ class AddCarViewModel @Inject constructor(
         private set
 
     private var editingCarId: Int? = null
+    private var carCreatedAt: Long = 0L
     val isEditing: Boolean get() = editingCarId != null
 
     // Emits the ID of the last newly-inserted car (not edits) so the UI can prompt for reminders
@@ -58,6 +59,7 @@ class AddCarViewModel @Inject constructor(
 
     fun resetForm() {
         editingCarId = null
+        carCreatedAt = 0L
         make = ""; model = ""; year = ""; licensePlate = ""
         color = ""; photoUri = null; currentKm = ""
         testExpiryDate = null; insuranceExpiryDate = null
@@ -69,6 +71,7 @@ class AddCarViewModel @Inject constructor(
         viewModelScope.launch {
             repository.getCarById(carId).first()?.let { car ->
                 editingCarId = car.id
+                carCreatedAt = car.createdAt
                 make = car.make
                 model = car.model
                 year = car.year.toString()
@@ -115,7 +118,8 @@ class AddCarViewModel @Inject constructor(
                 currentKm = currentKm.toIntOrNull(),
                 testExpiryDate = testExpiryDate,
                 insuranceExpiryDate = insuranceExpiryDate,
-                notes = notes.trim().ifBlank { null }
+                notes = notes.trim().ifBlank { null },
+                createdAt = if (isEditing) carCreatedAt else System.currentTimeMillis()
             )
             if (isEditing) {
                 repository.updateCar(car)

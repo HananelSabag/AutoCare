@@ -101,8 +101,11 @@ fun CarsScreen(onCarClick: (Int) -> Unit) {
         }
     }
 
-    // When a new car is saved, find it and offer reminder setup
-    LaunchedEffect(lastSavedCarId) {
+    // When a new car is saved, find it and offer reminder setup.
+    // Keyed on BOTH lastSavedCarId and cars so that if the Room Flow hasn't
+    // emitted the new car yet when lastSavedCarId fires, this effect re-runs
+    // once cars updates and correctly finds the car on the next attempt.
+    LaunchedEffect(lastSavedCarId, cars) {
         val id = lastSavedCarId ?: return@LaunchedEffect
         val car = cars.find { it.id == id }
         if (car != null) {
