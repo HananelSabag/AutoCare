@@ -61,6 +61,8 @@
     <string name="add_car_color_picker_label">בחר צבע</string>
     <string name="add_car_color_custom_hint">צבע אחר…</string>
     <string name="add_car_current_km">ק"מ נוכחי</string>
+    <string name="add_car_km_supporting">קריאת מד המרחק הנוכחית</string>
+    <string name="add_car_color_other">אחר…</string>
     <string name="add_car_test_expiry">תוקף טסט</string>
     <string name="add_car_insurance_expiry">ביטוח</string>
     <string name="add_car_comprehensive_expiry">ביטוח מקיף</string>
@@ -78,8 +80,10 @@
 
     <!-- Validation Errors -->
     <string name="error_field_required">שדה חובה</string>
-    <string name="error_year_invalid">שנה לא תקינה (1900–2030)</string>
+    <string name="error_year_invalid">שנה לא תקינה</string>
     <string name="error_invalid_license_plate">לוחית רישוי לא תקינה (7–8 ספרות)</string>
+    <string name="error_km_invalid">ק"מ לא תקין</string>
+    <string name="error_cost_invalid">סכום לא תקין</string>
 
     <!-- Date Picker -->
     <string name="date_not_set">לחץ לבחירת תאריך</string>
@@ -107,6 +111,7 @@
     <string name="car_profile_no_km">לא ידוע</string>
     <string name="car_profile_notes">הערות</string>
     <string name="car_profile_maintenance_history">היסטוריית טיפולים</string>
+    <string name="car_profile_maintenance_history_sub">כל הטיפולים, תיקונים ובלאי</string>
     <string name="car_profile_test_history">היסטוריית טסטים</string>
     <string name="car_profile_documents">מסמכים</string>
     <string name="car_profile_reminders">תזכורות</string>
@@ -122,6 +127,7 @@
     <string name="car_profile_days_label">ימים</string>
     <string name="car_profile_days_today">היום</string>
     <string name="car_profile_status_expired_short">פג!</string>
+    <string name="car_profile_status_not_set_short">?</string>
     <string name="car_profile_first_service_title">הוסף את הטיפול הראשון</string>
     <string name="car_profile_first_service_subtitle">סטטיסטיקות יופיעו לאחר הוספת 2 טיפולים</string>
     <string name="car_profile_one_service_title">עוד טיפול אחד לסטטיסטיקות</string>
@@ -149,7 +155,7 @@
     <string name="record_description">תיאור</string>
     <string name="record_km">ק"מ בעת הטיפול</string>
     <string name="record_km_optional">ק"מ (אופציונלי)</string>
-    <string name="record_cost_optional">עלות ₪ (אופציונלי)</string>
+    <string name="record_cost_optional">עלות (אופציונלי)</string>
     <string name="record_notes">הערות</string>
     <string name="record_description_placeholder">לדוגמה: הוחלף פילטר שמן, פילטר אוויר…</string>
     <string name="record_description_placeholder_maintenance">החלפת שמן, פילטרים, בדיקה כללית…</string>
@@ -248,6 +254,8 @@
     <string name="reminders_section_urgent">דחוף</string>
     <string name="reminders_section_soon">בקרוב</string>
     <string name="reminders_section_ok">בסדר</string>
+    <string name="reminders_all_good_title">הכל בסדר!</string>
+    <string name="reminders_all_good_subtitle">כל התזכורות שלך פעילות ובמצב תקין</string>
     <string name="reminders_empty_title">אין התראות פעילות</string>
     <string name="reminders_empty_subtitle">הפעל התראות מפרופיל הרכב כדי לקבל תזכורות לפני פקיעת תוקף</string>
     <string name="reminders_item_days_left">עוד %d ימים</string>

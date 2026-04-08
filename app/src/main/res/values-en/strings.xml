@@ -248,6 +248,8 @@
     <string name="reminders_section_urgent">Urgent</string>
     <string name="reminders_section_soon">Coming Up</string>
     <string name="reminders_section_ok">All Good</string>
+    <string name="reminders_all_good_title">All Good!</string>
+    <string name="reminders_all_good_subtitle">All your reminders are active and up to date</string>
     <string name="reminders_empty_title">No active reminders</string>
     <string name="reminders_empty_subtitle">Enable reminders from a car profile to get notified before expiry</string>
     <string name="reminders_item_days_left">%d days left</string>
