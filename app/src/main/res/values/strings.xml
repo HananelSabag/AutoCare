@@ -280,6 +280,10 @@
     <string name="enable_reminders_default">הפעל תזכורות</string>
     <string name="enable_reminders_skip">לא עכשיו</string>
     <string name="enable_reminders_add_service">הוסף טיפול אחרון</string>
+    <string name="setup_service_title">הוספת טיפול אחרון</string>
+    <string name="setup_service_subtitle">רשום את הטיפול האחרון שנעשה ל-%1$s %2$s כדי שנוכל לחשב מתי הטיפול הבא.</string>
+    <string name="setup_service_add">הוסף טיפול</string>
+    <string name="setup_service_skip">דלג, אוסיף אחר כך</string>
 
     <!-- Notifications -->
     <string name="notification_channel_name">תזכורות AutoCare</string>

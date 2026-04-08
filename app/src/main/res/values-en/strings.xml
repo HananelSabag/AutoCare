@@ -280,6 +280,10 @@
     <string name="enable_reminders_default">Enable Reminders</string>
     <string name="enable_reminders_skip">Not Now</string>
     <string name="enable_reminders_add_service">Add Last Service Record</string>
+    <string name="setup_service_title">Add Last Service</string>
+    <string name="setup_service_subtitle">Log the last service done on %1$s %2$s so we can calculate when the next one is due.</string>
+    <string name="setup_service_add">Add Service Record</string>
+    <string name="setup_service_skip">Skip, I\'ll add it later</string>
 
     <!-- Notifications -->
     <string name="notification_channel_name">AutoCare Reminders</string>

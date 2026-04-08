@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -246,11 +247,8 @@ fun CarsScreen(
         ) {
             ReminderPromptSheet(
                 car = car,
-                onEnableDefaults = {
-                    remindersViewModel.enableDefaultReminders(car)
-                    reminderPromptCar = null
-                },
-                onSkip = { reminderPromptCar = null },
+                onEnableDefaults = { remindersViewModel.enableDefaultReminders(car) },
+                onDone = { reminderPromptCar = null },
                 onAddService = {
                     reminderPromptCar = null
                     onAddServiceForCar(car.id)
@@ -263,10 +261,13 @@ fun CarsScreen(
 @Composable
 private fun ReminderPromptSheet(
     car: Car,
-    onEnableDefaults: () -> Unit,
-    onSkip: () -> Unit,
-    onAddService: () -> Unit
+    onEnableDefaults: () -> Unit,  // enable but don't close
+    onDone: () -> Unit,            // close the sheet
+    onAddService: () -> Unit       // close + navigate to add service
 ) {
+    // step 0 = reminders, step 1 = service
+    var step by remember { mutableStateOf(0) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -274,65 +275,100 @@ private fun ReminderPromptSheet(
             .padding(horizontal = 24.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            imageVector = Icons.Filled.Notifications,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(48.dp)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.enable_reminders_prompt_title),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.enable_reminders_prompt_subtitle, car.make, car.model),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Explanation card — what exactly gets enabled
-        androidx.compose.material3.Surface(
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = stringResource(R.string.enable_reminders_explain),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Start,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+        if (step == 0) {
+            // ── Step 1: Reminders ──────────────────────────────────
+            Icon(
+                imageVector = Icons.Filled.Notifications,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(48.dp)
             )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-        Button(
-            onClick = onEnableDefaults,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = MaterialTheme.shapes.large
-        ) {
-            Text(stringResource(R.string.enable_reminders_default))
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        FilledTonalButton(
-            onClick = onAddService,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            shape = MaterialTheme.shapes.large
-        ) {
-            Text(stringResource(R.string.enable_reminders_add_service))
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = stringResource(R.string.enable_reminders_skip),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = stringResource(R.string.enable_reminders_prompt_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.enable_reminders_prompt_subtitle, car.make, car.model),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            androidx.compose.material3.Surface(
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.enable_reminders_explain),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            Button(
+                onClick = { onEnableDefaults(); step = 1 },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Text(stringResource(R.string.enable_reminders_default))
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            TextButton(
+                onClick = { step = 1 },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.enable_reminders_skip),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            // ── Step 2: Add service ────────────────────────────────
+            Icon(
+                imageVector = Icons.Outlined.Build,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.setup_service_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.setup_service_subtitle, car.make, car.model),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+            Button(
+                onClick = onAddService,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Text(stringResource(R.string.setup_service_add))
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            TextButton(
+                onClick = onDone,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.setup_service_skip),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         Spacer(modifier = Modifier.height(8.dp))
     }
