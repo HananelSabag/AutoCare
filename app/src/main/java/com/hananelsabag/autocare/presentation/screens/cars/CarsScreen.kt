@@ -8,10 +8,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
@@ -28,17 +26,14 @@ import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -49,7 +44,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -57,21 +51,23 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hananelsabag.autocare.R
-import com.hananelsabag.autocare.data.local.preferences.AppPreferencesDataStore
 import com.hananelsabag.autocare.data.local.entities.Car
-import com.hananelsabag.autocare.presentation.components.CarCard
+import com.hananelsabag.autocare.presentation.components.CarPager
 import com.hananelsabag.autocare.presentation.screens.reminders.CarRemindersViewModel
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CarsScreen(onCarClick: (Int) -> Unit) {
+fun CarsScreen(
+    onCarClick: (Int) -> Unit,
+    onAddServiceForCar: (Int) -> Unit = {}
+) {
     val carsViewModel = hiltViewModel<CarsViewModel>()
     val addCarViewModel = hiltViewModel<AddCarViewModel>()
     val remindersViewModel = hiltViewModel<CarRemindersViewModel>()
 
     val cars by carsViewModel.cars.collectAsState()
+    val nextServiceDueMsByCarId by carsViewModel.nextServiceDueMsByCarId.collectAsState()
     val lastSavedCarId by addCarViewModel.lastSavedCarId.collectAsState()
 
     val context = LocalContext.current
@@ -80,9 +76,6 @@ fun CarsScreen(onCarClick: (Int) -> Unit) {
     var showAddSheet by remember { mutableStateOf(false) }
     var reminderPromptCar by remember { mutableStateOf<Car?>(null) }
     var showNotifRationale by remember { mutableStateOf(false) }
-
-    // Scroll behavior for collapsing top bar
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     // Notification permission launcher
     val notifLauncher = rememberLauncherForActivityResult(
@@ -115,14 +108,13 @@ fun CarsScreen(onCarClick: (Int) -> Unit) {
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = {
                     Column {
                         Text(
                             text = stringResource(R.string.screen_cars_title),
-                            style = MaterialTheme.typography.headlineMedium
+                            style = MaterialTheme.typography.titleLarge
                         )
                         AnimatedVisibility(
                             visible = cars.isNotEmpty(),
@@ -139,25 +131,8 @@ fun CarsScreen(onCarClick: (Int) -> Unit) {
                             )
                         }
                     }
-                },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                )
+                }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddSheet = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = stringResource(R.string.fab_add_car_description)
-                )
-            }
         },
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0)
     ) { paddingValues ->
@@ -167,17 +142,13 @@ fun CarsScreen(onCarClick: (Int) -> Unit) {
                 modifier = Modifier.padding(paddingValues)
             )
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(cars, key = { it.id }) { car ->
-                    CarCard(car = car, onClick = { onCarClick(car.id) })
-                }
-            }
+            CarPager(
+                cars = cars,
+                nextServiceDueMsByCarId = nextServiceDueMsByCarId,
+                onCarClick = onCarClick,
+                onAddCar = { showAddSheet = true },
+                modifier = Modifier.padding(paddingValues)
+            )
         }
     }
 
@@ -279,7 +250,11 @@ fun CarsScreen(onCarClick: (Int) -> Unit) {
                     remindersViewModel.enableDefaultReminders(car)
                     reminderPromptCar = null
                 },
-                onSkip = { reminderPromptCar = null }
+                onSkip = { reminderPromptCar = null },
+                onAddService = {
+                    reminderPromptCar = null
+                    onAddServiceForCar(car.id)
+                }
             )
         }
     }
@@ -289,7 +264,8 @@ fun CarsScreen(onCarClick: (Int) -> Unit) {
 private fun ReminderPromptSheet(
     car: Car,
     onEnableDefaults: () -> Unit,
-    onSkip: () -> Unit
+    onSkip: () -> Unit,
+    onAddService: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -307,7 +283,7 @@ private fun ReminderPromptSheet(
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.enable_reminders_prompt_title),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center
         )
@@ -318,7 +294,24 @@ private fun ReminderPromptSheet(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Explanation card — what exactly gets enabled
+        androidx.compose.material3.Surface(
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(R.string.enable_reminders_explain),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                textAlign = TextAlign.Start,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
         Button(
             onClick = onEnableDefaults,
             modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -327,6 +320,14 @@ private fun ReminderPromptSheet(
             Text(stringResource(R.string.enable_reminders_default))
         }
         Spacer(modifier = Modifier.height(8.dp))
+        FilledTonalButton(
+            onClick = onAddService,
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = MaterialTheme.shapes.large
+        ) {
+            Text(stringResource(R.string.enable_reminders_add_service))
+        }
+        Spacer(modifier = Modifier.height(4.dp))
         TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = stringResource(R.string.enable_reminders_skip),
