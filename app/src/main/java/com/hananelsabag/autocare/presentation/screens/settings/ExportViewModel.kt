@@ -1,11 +1,13 @@
 package com.hananelsabag.autocare.presentation.screens.settings
 
 import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hananelsabag.autocare.data.local.entities.Car
 import com.hananelsabag.autocare.domain.repository.CarRepository
 import com.hananelsabag.autocare.export.JsonExporter
+import com.hananelsabag.autocare.export.JsonImporter
 import com.hananelsabag.autocare.export.PdfExporter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -25,14 +27,27 @@ data class ExportUiState(
     val showCarPicker: Boolean = false,
     val isGeneratingPdf: Boolean = false,
     val isGeneratingJson: Boolean = false,
+    val isImporting: Boolean = false,
     val error: String? = null
 )
+
+sealed class ExportEvent {
+    /** PDF / share intent ready — open chooser */
+    data class ShareIntent(val intent: Intent) : ExportEvent()
+    /** JSON backup saved to Downloads — show snackbar with file name */
+    data class BackupSaved(val fileName: String, val shareUri: Uri) : ExportEvent()
+    /** Import finished successfully */
+    data class ImportSuccess(val carsImported: Int) : ExportEvent()
+    /** Any error */
+    data class Error(val tag: String) : ExportEvent()
+}
 
 @HiltViewModel
 class ExportViewModel @Inject constructor(
     private val carRepository: CarRepository,
     private val pdfExporter: PdfExporter,
-    private val jsonExporter: JsonExporter
+    private val jsonExporter: JsonExporter,
+    private val jsonImporter: JsonImporter
 ) : ViewModel() {
 
     val cars: StateFlow<List<Car>> = carRepository.getAllCars()
@@ -41,15 +56,15 @@ class ExportViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ExportUiState())
     val uiState: StateFlow<ExportUiState> = _uiState
 
-    private val _shareIntent = MutableSharedFlow<Intent>()
-    val shareIntent: SharedFlow<Intent> = _shareIntent.asSharedFlow()
+    private val _events = MutableSharedFlow<ExportEvent>()
+    val events: SharedFlow<ExportEvent> = _events.asSharedFlow()
 
-    // ── PDF ──────────────────────────────────────────────────────────────────────
+    // ── PDF ──────────────────────────────────────────────────────────────────
 
     fun onPdfExportRequested() {
         val carList = cars.value
         when {
-            carList.isEmpty() -> _uiState.update { it.copy(error = "no_cars") }
+            carList.isEmpty() -> viewModelScope.launch { _events.emit(ExportEvent.Error("no_cars")) }
             carList.size == 1 -> startPdfExport(carList[0].id)
             else -> _uiState.update { it.copy(showCarPicker = true) }
         }
@@ -66,35 +81,58 @@ class ExportViewModel @Inject constructor(
 
     private fun startPdfExport(carId: Int) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isGeneratingPdf = true, error = null) }
+            _uiState.update { it.copy(isGeneratingPdf = true) }
             runCatching {
                 withContext(Dispatchers.IO) { pdfExporter.exportCar(carId) }
             }.onSuccess { intent ->
-                _shareIntent.emit(intent)
+                _events.emit(ExportEvent.ShareIntent(intent))
             }.onFailure {
-                _uiState.update { s -> s.copy(error = "pdf_error") }
+                _events.emit(ExportEvent.Error("pdf_error"))
             }
             _uiState.update { it.copy(isGeneratingPdf = false) }
         }
     }
 
-    // ── JSON ─────────────────────────────────────────────────────────────────────
+    // ── JSON Backup ───────────────────────────────────────────────────────────
 
     fun onJsonExportRequested() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isGeneratingJson = true, error = null) }
+            _uiState.update { it.copy(isGeneratingJson = true) }
             runCatching {
                 withContext(Dispatchers.IO) { jsonExporter.exportAll() }
-            }.onSuccess { intent ->
-                _shareIntent.emit(intent)
+            }.onSuccess { result ->
+                _events.emit(ExportEvent.BackupSaved(result.fileName, result.shareUri))
             }.onFailure {
-                _uiState.update { s -> s.copy(error = "json_error") }
+                _events.emit(ExportEvent.Error("json_error"))
             }
             _uiState.update { it.copy(isGeneratingJson = false) }
         }
     }
 
-    // ── Error ─────────────────────────────────────────────────────────────────────
+    fun onShareBackup(uri: Uri) {
+        viewModelScope.launch {
+            val intent = jsonExporter.buildShareIntent(uri)
+            _events.emit(ExportEvent.ShareIntent(intent))
+        }
+    }
+
+    // ── JSON Import ───────────────────────────────────────────────────────────
+
+    fun onImportFileSelected(uri: Uri) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isImporting = true) }
+            runCatching {
+                withContext(Dispatchers.IO) { jsonImporter.importFrom(uri) }
+            }.onSuccess { result ->
+                _events.emit(ExportEvent.ImportSuccess(result.carsImported))
+            }.onFailure {
+                _events.emit(ExportEvent.Error("import_error"))
+            }
+            _uiState.update { it.copy(isImporting = false) }
+        }
+    }
+
+    // ── Error ─────────────────────────────────────────────────────────────────
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
