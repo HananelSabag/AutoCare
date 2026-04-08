@@ -31,13 +31,11 @@ import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.AlertDialog
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -452,164 +450,114 @@ private fun CarHeroSection(car: Car, topBarPadding: Dp) {
     }
 }
 
-// ── Status banner — two individual mini-cards ─────────────────────────────────
+// ── Status banner — 3 boxes in one row ───────────────────────────────────────
 
 @Composable
 private fun StatusBanner(car: Car, nextServiceDueMs: Long?) {
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = MaterialTheme.shapes.extraLarge
     ) {
-        StatusMiniCard(
-            icon = Icons.Outlined.VerifiedUser,
-            label = stringResource(R.string.car_profile_test_expiry),
-            expiryMs = car.testExpiryDate,
-            level = getStatusLevel(car.testExpiryDate)
-        )
-        StatusMiniCard(
-            icon = Icons.Outlined.Security,
-            label = stringResource(R.string.car_profile_insurance_expiry),
-            expiryMs = car.insuranceExpiryDate,
-            level = getStatusLevel(car.insuranceExpiryDate)
-        )
-        StatusMiniCard(
-            icon = Icons.Outlined.Build,
-            label = stringResource(R.string.car_profile_service_status),
-            expiryMs = nextServiceDueMs,
-            level = getStatusLevel(nextServiceDueMs)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp, horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StatusBox(
+                icon = Icons.Outlined.VerifiedUser,
+                label = stringResource(R.string.car_profile_test_expiry),
+                expiryMs = car.testExpiryDate,
+                level = getStatusLevel(car.testExpiryDate),
+                modifier = Modifier.weight(1f)
+            )
+            VerticalDivider(modifier = Modifier.height(56.dp))
+            StatusBox(
+                icon = Icons.Outlined.Security,
+                label = stringResource(R.string.car_profile_insurance_expiry),
+                expiryMs = car.insuranceExpiryDate,
+                level = getStatusLevel(car.insuranceExpiryDate),
+                modifier = Modifier.weight(1f)
+            )
+            VerticalDivider(modifier = Modifier.height(56.dp))
+            StatusBox(
+                icon = Icons.Outlined.Build,
+                label = stringResource(R.string.car_profile_service_status),
+                expiryMs = nextServiceDueMs,
+                level = getStatusLevel(nextServiceDueMs),
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
 @Composable
-private fun StatusMiniCard(
+private fun StatusBox(
     icon: ImageVector,
     label: String,
     expiryMs: Long?,
-    level: StatusLevel
+    level: StatusLevel,
+    modifier: Modifier = Modifier
 ) {
-    val cardColor = when (level) {
-        StatusLevel.GREEN                    -> StatusGreenContainer
-        StatusLevel.YELLOW                   -> StatusYellowContainer
-        StatusLevel.RED, StatusLevel.EXPIRED -> StatusRedContainer
-        StatusLevel.UNKNOWN                  -> MaterialTheme.colorScheme.surfaceVariant
-    }
     val accentColor = when (level) {
         StatusLevel.GREEN                    -> StatusGreen
         StatusLevel.YELLOW                   -> StatusYellow
         StatusLevel.RED, StatusLevel.EXPIRED -> StatusRed
         StatusLevel.UNKNOWN                  -> MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val isExpired = level == StatusLevel.EXPIRED
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (isExpired) Modifier.border(2.dp, StatusRed, MaterialTheme.shapes.large)
-                else Modifier
-            ),
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        shape = MaterialTheme.shapes.large
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Icon
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accentColor,
-                modifier = Modifier.size(22.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Label + description
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = statusDescriptionText(expiryMs),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = accentColor,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            // Prominent day-count badge on the right
-            DaysBadge(expiryMs = expiryMs, accentColor = accentColor)
-        }
+    val days = expiryMs?.daysFromNow()
+    val daysText = when {
+        expiryMs == null -> stringResource(R.string.car_profile_status_not_set_short)
+        days!! < 0L      -> stringResource(R.string.car_profile_status_expired_short)
+        days == 0L       -> stringResource(R.string.car_profile_days_today)
+        else             -> days.toInt().toString()
     }
-}
+    val subText = when {
+        expiryMs == null -> null
+        days!! < 0L      -> null
+        days == 0L       -> null
+        else             -> stringResource(R.string.car_profile_days_label)
+    }
 
-@Composable
-private fun DaysBadge(expiryMs: Long?, accentColor: Color) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .padding(start = 8.dp)
-            .width(56.dp)
+    Column(
+        modifier = modifier.padding(horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        when {
-            expiryMs == null -> {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.50f),
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-            else -> {
-                val days = expiryMs.daysFromNow()
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    when {
-                        days < 0L  -> {
-                            Text(
-                                text = stringResource(R.string.car_profile_status_expired_short),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = accentColor,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        days == 0L -> {
-                            Text(
-                                text = stringResource(R.string.car_profile_days_today),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = accentColor,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        else -> {
-                            Text(
-                                text = days.toInt().toString(),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = accentColor,
-                                textAlign = TextAlign.Center
-                            )
-                            Text(
-                                text = stringResource(R.string.car_profile_days_label),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = accentColor.copy(alpha = 0.75f),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-            }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = accentColor,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            text = daysText,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = accentColor,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+        if (subText != null) {
+            Text(
+                text = subText,
+                style = MaterialTheme.typography.labelSmall,
+                color = accentColor.copy(alpha = 0.70f),
+                textAlign = TextAlign.Center
+            )
         }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
     }
 }
 
@@ -701,7 +649,7 @@ private fun DetailStatItem(icon: ImageVector, label: String, value: String) {
     }
 }
 
-// ── Action tiles (2×2 grid) ───────────────────────────────────────────────────
+// ── Action tiles — 1 wide hero + 2 side ──────────────────────────────────────
 
 @Composable
 private fun ActionTilesGrid(
@@ -715,74 +663,115 @@ private fun ActionTilesGrid(
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        ActionTile(
-            icon = Icons.Filled.History,
-            label = stringResource(R.string.car_profile_maintenance_history),
+        // Hero tile — maintenance history (wide, tall, prominent)
+        Card(
             onClick = onMaintenanceHistory,
-            isPrimary = true,
-            modifier = Modifier.weight(1f)
-        )
-        ActionTile(
-            icon = Icons.Outlined.Description,
-            label = stringResource(R.string.car_profile_documents),
-            onClick = onDocuments,
-            isPrimary = false,
-            modifier = Modifier.weight(1f)
-        )
-        ActionTile(
-            icon = Icons.Outlined.NotificationsNone,
-            label = stringResource(R.string.car_profile_reminders),
-            onClick = onReminders,
-            isPrimary = false,
-            modifier = Modifier.weight(1f)
-        )
+            modifier = Modifier
+                .weight(1.35f)
+                .height(160.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            ),
+            shape = MaterialTheme.shapes.extraLarge
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            MaterialTheme.shapes.medium
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.History,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+                Column {
+                    Text(
+                        text = stringResource(R.string.car_profile_maintenance_history),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = stringResource(R.string.car_profile_maintenance_history_sub),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.65f)
+                    )
+                }
+            }
+        }
+
+        // Side column — documents + reminders stacked
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            SideActionTile(
+                icon = Icons.Outlined.Description,
+                label = stringResource(R.string.car_profile_documents),
+                onClick = onDocuments,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(75.dp)
+            )
+            SideActionTile(
+                icon = Icons.Outlined.NotificationsNone,
+                label = stringResource(R.string.car_profile_reminders),
+                onClick = onReminders,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(75.dp)
+            )
+        }
     }
 }
 
 @Composable
-private fun ActionTile(
+private fun SideActionTile(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
-    isPrimary: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val containerColor = if (isPrimary)
-        MaterialTheme.colorScheme.primaryContainer
-    else
-        MaterialTheme.colorScheme.surfaceContainerLow
-    val contentColor = if (isPrimary)
-        MaterialTheme.colorScheme.onPrimaryContainer
-    else
-        MaterialTheme.colorScheme.onSurfaceVariant
-
     Card(
         onClick = onClick,
-        modifier = modifier.height(100.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
         shape = MaterialTheme.shapes.large
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(28.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
-                color = contentColor,
-                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 8.dp)
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
