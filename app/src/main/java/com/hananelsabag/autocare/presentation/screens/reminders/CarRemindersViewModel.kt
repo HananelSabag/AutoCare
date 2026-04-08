@@ -151,7 +151,7 @@ class CarRemindersViewModel @Inject constructor(
                 ),
                 Reminder(
                     carId = car.id,
-                    type = ReminderType.INSURANCE_COMPULSORY_EXPIRY,
+                    type = ReminderType.INSURANCE_EXPIRY,
                     enabled = car.insuranceExpiryDate != null,
                     daysBeforeExpiry = 60
                 ),

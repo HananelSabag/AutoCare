@@ -108,7 +108,7 @@ fun CarRemindersScreen(carId: Int, onBack: () -> Unit) {
                 // Determine the expiry date for this reminder type
                 val expiryMs: Long? = when (type) {
                     ReminderType.TEST_EXPIRY -> car?.testExpiryDate
-                    ReminderType.INSURANCE_COMPULSORY_EXPIRY -> car?.insuranceExpiryDate
+                    ReminderType.INSURANCE_EXPIRY -> car?.insuranceExpiryDate
                     ReminderType.SERVICE_DATE ->
                         CarRemindersViewModel.serviceDueDate(lastMaintenanceDate)
                 }
@@ -399,12 +399,12 @@ private data class ChipData(
 
 private fun ReminderType.labelRes(): Int = when (this) {
     ReminderType.TEST_EXPIRY                 -> R.string.reminder_type_test_expiry
-    ReminderType.INSURANCE_COMPULSORY_EXPIRY -> R.string.reminder_type_insurance_compulsory
+    ReminderType.INSURANCE_EXPIRY -> R.string.reminder_type_insurance_compulsory
     ReminderType.SERVICE_DATE                -> R.string.reminder_type_service_date
 }
 
 private fun ReminderType.iconVector(): ImageVector = when (this) {
     ReminderType.TEST_EXPIRY                 -> Icons.Outlined.VerifiedUser
-    ReminderType.INSURANCE_COMPULSORY_EXPIRY -> Icons.Outlined.Security
+    ReminderType.INSURANCE_EXPIRY -> Icons.Outlined.Security
     ReminderType.SERVICE_DATE                -> Icons.Outlined.Autorenew
 }
