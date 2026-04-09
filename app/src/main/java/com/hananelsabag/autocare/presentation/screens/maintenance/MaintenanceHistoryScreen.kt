@@ -56,6 +56,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -91,6 +92,8 @@ fun MaintenanceHistoryScreen(carId: Int, onBack: () -> Unit) {
     val records by viewModel.records.collectAsState()
 
     var showAddSheet by remember { mutableStateOf(false) }
+    var recordFormIsDirty by remember { mutableStateOf(false) }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
     var selectedRecord by remember { mutableStateOf<MaintenanceRecord?>(null) }
     var recordToEdit by remember { mutableStateOf<MaintenanceRecord?>(null) }
     var recordToDelete by remember { mutableStateOf<MaintenanceRecord?>(null) }
@@ -155,9 +158,29 @@ fun MaintenanceHistoryScreen(carId: Int, onBack: () -> Unit) {
 
     // ── Add / Edit Sheet ────────────────────────────────────────
     if (showAddSheet || recordToEdit != null) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { newValue ->
+                if (newValue == SheetValue.Hidden && recordFormIsDirty) {
+                    showDiscardConfirm = true
+                    false  // keep the sheet open
+                } else {
+                    true
+                }
+            }
+        )
+
+        fun closeSheet() {
+            recordFormIsDirty = false
+            showAddSheet = false
+            recordToEdit = null
+        }
+
         ModalBottomSheet(
-            onDismissRequest = { showAddSheet = false; recordToEdit = null },
+            onDismissRequest = {
+                if (!recordFormIsDirty) closeSheet()
+                // If dirty: confirmValueChange showed the dialog; sheet stays open.
+            },
             sheetState = sheetState
         ) {
             AddMaintenanceRecordSheet(
@@ -166,11 +189,44 @@ fun MaintenanceHistoryScreen(carId: Int, onBack: () -> Unit) {
                 onSave = { record ->
                     if (recordToEdit != null) viewModel.updateRecord(record)
                     else viewModel.insertRecord(record)
-                    showAddSheet = false; recordToEdit = null
+                    closeSheet()
                 },
-                onDismiss = { showAddSheet = false; recordToEdit = null }
+                onDismiss = {
+                    if (recordFormIsDirty) showDiscardConfirm = true
+                    else closeSheet()
+                },
+                onDirtyChanged = { recordFormIsDirty = it }
             )
         }
+    }
+
+    // ── Discard confirmation ─────────────────────────────────────
+    if (showDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text(stringResource(R.string.add_record_discard_title)) },
+            text = { Text(stringResource(R.string.add_record_discard_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDiscardConfirm = false
+                        recordFormIsDirty = false
+                        showAddSheet = false
+                        recordToEdit = null
+                    }
+                ) {
+                    Text(
+                        stringResource(R.string.add_record_discard_confirm),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConfirm = false }) {
+                    Text(stringResource(R.string.add_record_discard_cancel))
+                }
+            }
+        )
     }
 
     // ── Detail Sheet ────────────────────────────────────────────

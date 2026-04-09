@@ -50,6 +50,7 @@ class AddCarViewModel @Inject constructor(
 
     private var editingCarId: Int? = null
     private var carCreatedAt: Long = 0L
+    private var carDisplayOrder: Int = 0
     val isEditing: Boolean get() = editingCarId != null
 
     // Emits the ID of the last newly-inserted car (not edits) so the UI can prompt for reminders
@@ -61,6 +62,7 @@ class AddCarViewModel @Inject constructor(
     fun resetForm() {
         editingCarId = null
         carCreatedAt = 0L
+        carDisplayOrder = 0
         make = ""; model = ""; year = ""; licensePlate = ""
         color = ""; photoUri = null; currentKm = ""
         testExpiryDate = null; insuranceExpiryDate = null
@@ -73,6 +75,7 @@ class AddCarViewModel @Inject constructor(
             repository.getCarById(carId).first()?.let { car ->
                 editingCarId = car.id
                 carCreatedAt = car.createdAt
+                carDisplayOrder = car.displayOrder
                 make = car.make
                 model = car.model
                 year = car.year.toString()
@@ -117,6 +120,8 @@ class AddCarViewModel @Inject constructor(
     fun save(onSaved: () -> Unit) {
         if (!validate()) return
         viewModelScope.launch {
+            val newDisplayOrder = if (isEditing) carDisplayOrder
+                                  else repository.getMaxDisplayOrder() + 1
             val car = Car(
                 id = editingCarId ?: 0,
                 make = make.trim(),
@@ -138,7 +143,8 @@ class AddCarViewModel @Inject constructor(
                 testExpiryDate = testExpiryDate,
                 insuranceExpiryDate = insuranceExpiryDate,
                 notes = notes.trim().ifBlank { null },
-                createdAt = if (isEditing) carCreatedAt else System.currentTimeMillis()
+                createdAt = if (isEditing) carCreatedAt else System.currentTimeMillis(),
+                displayOrder = newDisplayOrder
             )
             if (isEditing) {
                 repository.updateCar(car)

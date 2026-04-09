@@ -2,13 +2,15 @@ package com.hananelsabag.autocare.presentation.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,8 +32,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,15 +60,19 @@ import com.hananelsabag.autocare.util.daysFromNow
 import com.hananelsabag.autocare.util.getStatusLevel
 
 @Composable
+fun rememberCarPagerState(carCount: Int): PagerState =
+    rememberPagerState(pageCount = { carCount + 1 })
+
+@Composable
 fun CarPager(
     cars: List<Car>,
     nextServiceDueMsByCarId: Map<Int, Long?>,
     onCarClick: (Int) -> Unit,
     onAddCar: () -> Unit,
+    onCarLongPress: (Car) -> Unit,
+    pagerState: PagerState = rememberCarPagerState(cars.size),
     modifier: Modifier = Modifier
 ) {
-    val pageCount = cars.size + 1
-    val pagerState = rememberPagerState(pageCount = { pageCount })
 
     Column(modifier = modifier.fillMaxSize()) {
         HorizontalPager(
@@ -100,7 +109,8 @@ fun CarPager(
                     CarPagerCard(
                         car = cars[page],
                         nextServiceDueMs = nextServiceDueMsByCarId[cars[page].id],
-                        onClick = { onCarClick(cars[page].id) }
+                        onClick = { onCarClick(cars[page].id) },
+                        onLongClick = { onCarLongPress(cars[page]) }
                     )
                 } else {
                     AddCarPagerCard(onClick = onAddCar)
@@ -116,7 +126,7 @@ fun CarPager(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            repeat(pageCount) { index ->
+            repeat(pagerState.pageCount) { index ->
                 val isSelected = pagerState.currentPage == index
                 val dotWidth by animateFloatAsState(
                     targetValue = if (isSelected) 20f else 7f,
@@ -139,23 +149,18 @@ fun CarPager(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun CarPagerCard(car: Car, nextServiceDueMs: Long?, onClick: () -> Unit) {
-    val worstLevel = listOf(
-        getStatusLevel(car.testExpiryDate),
-        getStatusLevel(car.insuranceExpiryDate)
-    ).maxByOrNull { it.ordinal } ?: StatusLevel.UNKNOWN
-
-    val accentColor = when (worstLevel) {
-        StatusLevel.GREEN -> StatusGreen
-        StatusLevel.YELLOW -> StatusYellow
-        StatusLevel.RED, StatusLevel.EXPIRED -> StatusRed
-        StatusLevel.UNKNOWN -> MaterialTheme.colorScheme.primary
-    }
-
+private fun CarPagerCard(car: Car, nextServiceDueMs: Long?, onClick: () -> Unit, onLongClick: () -> Unit) {
     ElevatedCard(
-        onClick = onClick,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .combinedClickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(),
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         shape = MaterialTheme.shapes.extraLarge,
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp)
     ) {
@@ -231,14 +236,6 @@ private fun CarPagerCard(car: Car, nextServiceDueMs: Long?, onClick: () -> Unit)
                     )
                 }
 
-                // Top accent line
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .align(Alignment.TopStart)
-                        .background(accentColor)
-                )
             }
 
             // ── Details section (~56% of card) ────────────────────────
@@ -398,25 +395,3 @@ private fun AddCarPagerCard(onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun IsraeliLicensePlate(plate: String) {
-    Box(
-        modifier = Modifier
-            .background(
-                color = Color(0xFFFFD700),
-                shape = MaterialTheme.shapes.small
-            )
-            .padding(horizontal = 14.dp, vertical = 6.dp)
-    ) {
-        Text(
-            text = plate,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
-            letterSpacing = androidx.compose.ui.unit.TextUnit(
-                1.5f,
-                androidx.compose.ui.unit.TextUnitType.Sp
-            )
-        )
-    }
-}

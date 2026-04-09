@@ -60,6 +60,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.core.content.FileProvider
 import java.io.File
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -95,7 +96,8 @@ fun AddMaintenanceRecordSheet(
     carId: Int,
     existingRecord: MaintenanceRecord? = null,
     onSave: (MaintenanceRecord) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onDirtyChanged: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val isEditing = existingRecord != null
@@ -149,6 +151,12 @@ fun AddMaintenanceRecordSheet(
             receiptUri = it.toString()
         }
     }
+
+    // Report dirty state to parent so it can decide whether to confirm dismiss.
+    // "Dirty" = user has typed anything (ignores type/date since those have defaults).
+    val isDirty = description.isNotBlank() || km.isNotBlank() || cost.isNotBlank() ||
+        notes.isNotBlank() || receiptUri != null
+    LaunchedEffect(isDirty) { onDirtyChanged(isDirty) }
 
     fun validate(): Boolean {
         descriptionError = description.isBlank()

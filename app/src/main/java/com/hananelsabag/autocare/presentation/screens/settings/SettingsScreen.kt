@@ -83,7 +83,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import android.content.ActivityNotFoundException
 import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -127,6 +127,8 @@ fun SettingsScreen() {
         ActivityResultContracts.GetContent()
     ) { uri -> uri?.let { exportViewModel.onImportFileSelected(it) } }
 
+    val pdfSavedMsg     = stringResource(R.string.export_pdf_saved)
+    val pdfOpenMsg      = stringResource(R.string.export_pdf_open)
     val backupSavedMsg  = stringResource(R.string.export_json_saved)
     val shareActionMsg  = stringResource(R.string.export_json_share)
     val importSuccessFmt = stringResource(R.string.import_success)
@@ -136,14 +138,34 @@ fun SettingsScreen() {
     LaunchedEffect(exportViewModel) {
         exportViewModel.events.collect { event ->
             when (event) {
+                is ExportEvent.PdfSaved -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message     = pdfSavedMsg,
+                        actionLabel = pdfOpenMsg,
+                        duration    = SnackbarDuration.Long
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        try {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(event.uri, "application/pdf")
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                            )
+                        } catch (_: ActivityNotFoundException) { /* no PDF viewer installed */ }
+                    }
+                }
                 is ExportEvent.ShareIntent -> {
-                    context.startActivity(Intent.createChooser(event.intent, null))
+                    context.startActivity(
+                        Intent.createChooser(event.intent, null)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
                 }
                 is ExportEvent.BackupSaved -> {
                     val result = snackbarHostState.showSnackbar(
-                        message = backupSavedMsg,
+                        message     = backupSavedMsg,
                         actionLabel = shareActionMsg,
-                        duration = SnackbarDuration.Long
+                        duration    = SnackbarDuration.Long
                     )
                     if (result == SnackbarResult.ActionPerformed) {
                         exportViewModel.onShareBackup(event.shareUri)
@@ -155,11 +177,9 @@ fun SettingsScreen() {
                     )
                 }
                 is ExportEvent.Error -> {
-                    val msg = when (event.tag) {
-                        "import_error" -> importErrorMsg
-                        else           -> exportErrorMsg
-                    }
-                    snackbarHostState.showSnackbar(msg)
+                    snackbarHostState.showSnackbar(
+                        if (event.tag == "import_error") importErrorMsg else exportErrorMsg
+                    )
                 }
             }
         }
@@ -330,39 +350,6 @@ fun SettingsScreen() {
         }
     }
 
-    // ── Loading Dialog ─────────────────────────────────────────────────────────
-    val busyLabel = when {
-        exportState.isGeneratingPdf  -> stringResource(R.string.export_pdf_generating)
-        exportState.isGeneratingJson -> stringResource(R.string.export_json_generating)
-        exportState.isImporting      -> stringResource(R.string.import_json_loading)
-        else                         -> null
-    }
-    if (busyLabel != null) {
-        Dialog(onDismissRequest = {}) {
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                shadowElevation = 16.dp
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 28.dp, vertical = 24.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(18.dp)
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(28.dp),
-                        strokeWidth = 3.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = busyLabel,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
-    }
 }
 
 // ── Hero ──────────────────────────────────────────────────────────────────────

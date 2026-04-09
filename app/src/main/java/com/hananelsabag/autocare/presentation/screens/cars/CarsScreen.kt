@@ -9,6 +9,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
+import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.DirectionsCar
@@ -28,13 +32,16 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +62,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.data.local.entities.Car
 import com.hananelsabag.autocare.presentation.components.CarPager
+import com.hananelsabag.autocare.presentation.components.rememberCarPagerState
 import com.hananelsabag.autocare.presentation.screens.reminders.CarRemindersViewModel
 import kotlinx.coroutines.launch
 
@@ -79,6 +87,18 @@ fun CarsScreen(
     var showDiscardConfirm by remember { mutableStateOf(false) }
     var reminderPromptCar by remember { mutableStateOf<Car?>(null) }
     var showNotifRationale by remember { mutableStateOf(false) }
+    var contextMenuCar by remember { mutableStateOf<Car?>(null) }
+    var carToDelete by remember { mutableStateOf<Car?>(null) }
+    var scrollToCarId by remember { mutableStateOf<Int?>(null) }
+    val pagerState = rememberCarPagerState(cars.size)
+
+    // Scroll to the reordered car once cars list has updated to reflect the new order.
+    // Keyed on both scrollToCarId and cars so it fires again after the DB update arrives.
+    LaunchedEffect(scrollToCarId, cars) {
+        val id = scrollToCarId ?: return@LaunchedEffect
+        val idx = cars.indexOfFirst { it.id == id }
+        if (idx >= 0) pagerState.animateScrollToPage(idx)
+    }
 
     // Notification permission launcher
     val notifLauncher = rememberLauncherForActivityResult(
@@ -150,6 +170,8 @@ fun CarsScreen(
                 nextServiceDueMsByCarId = nextServiceDueMsByCarId,
                 onCarClick = onCarClick,
                 onAddCar = { showAddSheet = true },
+                onCarLongPress = { car -> contextMenuCar = car },
+                pagerState = pagerState,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -218,15 +240,28 @@ fun CarsScreen(
 
     // ── Add Car Sheet ────────────────────────────────────────────
     if (showAddSheet) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        // confirmValueChange blocks the sheet from hiding when the user has
+        // unsaved data — the dialog then lets them choose to discard or continue.
+        val sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { newValue ->
+                if (newValue == SheetValue.Hidden && addCarViewModel.hasUnsavedData()) {
+                    showDiscardConfirm = true
+                    false  // keep the sheet open
+                } else {
+                    true
+                }
+            }
+        )
         ModalBottomSheet(
             onDismissRequest = {
-                if (addCarViewModel.hasUnsavedData()) {
-                    showDiscardConfirm = true
-                } else {
+                // Fires on back-press / tap-outside even when confirmValueChange
+                // returned false. Only close if there's nothing to lose.
+                if (!addCarViewModel.hasUnsavedData()) {
                     addCarViewModel.resetForm()
                     showAddSheet = false
                 }
+                // If dirty: confirmValueChange already showed the dialog; do nothing here.
             },
             sheetState = sheetState
         ) {
@@ -284,6 +319,145 @@ fun CarsScreen(
                 }
             )
         }
+    }
+
+    // ── Car context menu (long press) ────────────────────────────
+    contextMenuCar?.let { car ->
+        val isFirst = cars.firstOrNull()?.id == car.id
+        val isLast = cars.lastOrNull()?.id == car.id
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { contextMenuCar = null },
+            sheetState = sheetState
+        ) {
+            CarContextMenuSheet(
+                car = car,
+                isFirst = isFirst,
+                isLast = isLast,
+                onMoveToFirst = {
+                    carsViewModel.moveToFirst(car)
+                    scrollToCarId = car.id
+                    contextMenuCar = null
+                },
+                onMoveToLast = {
+                    carsViewModel.moveToLast(car)
+                    scrollToCarId = car.id
+                    contextMenuCar = null
+                },
+                onDelete = {
+                    contextMenuCar = null
+                    carToDelete = car
+                }
+            )
+        }
+    }
+
+    // ── Delete car confirmation ──────────────────────────────────
+    carToDelete?.let { car ->
+        AlertDialog(
+            onDismissRequest = { carToDelete = null },
+            title = { Text(stringResource(R.string.car_profile_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.car_profile_delete_confirm_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    carsViewModel.deleteCar(car)
+                    carToDelete = null
+                }) {
+                    Text(
+                        text = stringResource(R.string.car_profile_delete_confirm_yes),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { carToDelete = null }) {
+                    Text(stringResource(R.string.car_profile_delete_confirm_no))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun CarContextMenuSheet(
+    car: Car,
+    isFirst: Boolean,
+    isLast: Boolean,
+    onMoveToFirst: () -> Unit,
+    onMoveToLast: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(bottom = 8.dp)
+    ) {
+        Text(
+            text = "${car.make} ${car.model}",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        HorizontalDivider()
+
+        ListItem(
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.car_context_move_to_first),
+                    color = if (isFirst) MaterialTheme.colorScheme.outline
+                            else MaterialTheme.colorScheme.onSurface
+                )
+            },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Filled.KeyboardDoubleArrowUp,
+                    contentDescription = null,
+                    tint = if (isFirst) MaterialTheme.colorScheme.outline
+                           else MaterialTheme.colorScheme.onSurface
+                )
+            },
+            modifier = Modifier.clickable(enabled = !isFirst, onClick = onMoveToFirst)
+        )
+
+        ListItem(
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.car_context_move_to_last),
+                    color = if (isLast) MaterialTheme.colorScheme.outline
+                            else MaterialTheme.colorScheme.onSurface
+                )
+            },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Filled.KeyboardDoubleArrowDown,
+                    contentDescription = null,
+                    tint = if (isLast) MaterialTheme.colorScheme.outline
+                           else MaterialTheme.colorScheme.onSurface
+                )
+            },
+            modifier = Modifier.clickable(enabled = !isLast, onClick = onMoveToLast)
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+        ListItem(
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.car_context_delete),
+                    color = MaterialTheme.colorScheme.error
+                )
+            },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            modifier = Modifier.clickable(onClick = onDelete)
+        )
     }
 }
 

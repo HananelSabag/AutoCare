@@ -46,4 +46,26 @@ class CarsViewModel @Inject constructor(
     fun deleteCar(car: Car) {
         viewModelScope.launch { repository.deleteCar(car) }
     }
+
+    fun moveToFirst(car: Car) = applyReorder(car) { list, idx ->
+        list.removeAt(idx)
+        list.add(0, car)
+    }
+
+    fun moveToLast(car: Car) = applyReorder(car) { list, idx ->
+        list.removeAt(idx)
+        list.add(car)
+    }
+
+    private fun applyReorder(car: Car, transform: (MutableList<Car>, Int) -> Unit) {
+        viewModelScope.launch {
+            val sorted = cars.value.toMutableList()
+            val idx = sorted.indexOfFirst { it.id == car.id }
+            if (idx == -1) return@launch
+            transform(sorted, idx)
+            sorted.forEachIndexed { i, c ->
+                if (c.displayOrder != i) repository.updateCar(c.copy(displayOrder = i))
+            }
+        }
+    }
 }

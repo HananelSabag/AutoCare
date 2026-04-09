@@ -36,6 +36,13 @@ class RemindersDashboardViewModel @Inject constructor(
     private val maintenanceRecordRepository: MaintenanceRecordRepository
 ) : ViewModel() {
 
+    val cars = carRepository.getAllCars()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
     val items = carRepository.getAllCars()
         .flatMapLatest { cars ->
             // For each car, combine its reminders + last maintenance date

@@ -53,6 +53,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.Composable
@@ -78,6 +79,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.data.local.entities.Car
+import com.hananelsabag.autocare.presentation.components.IsraeliLicensePlate
 import com.hananelsabag.autocare.presentation.screens.cars.AddCarSheetContent
 import com.hananelsabag.autocare.presentation.screens.cars.AddCarViewModel
 import com.hananelsabag.autocare.presentation.theme.StatusGreen
@@ -110,6 +112,7 @@ fun CarProfileScreen(
     val nextServiceDueMs by viewModel.nextServiceDueMs.collectAsState()
 
     var showEditSheet by remember { mutableStateOf(false) }
+    var showEditDiscardConfirm by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showStatsSheet by remember { mutableStateOf(false) }
 
@@ -233,11 +236,23 @@ fun CarProfileScreen(
 
     // ── Edit Sheet ──────────────────────────────────────────────────────
     if (showEditSheet) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { newValue ->
+                if (newValue == SheetValue.Hidden && addCarViewModel.hasUnsavedData()) {
+                    showEditDiscardConfirm = true
+                    false
+                } else {
+                    true
+                }
+            }
+        )
         ModalBottomSheet(
             onDismissRequest = {
-                addCarViewModel.resetForm()
-                showEditSheet = false
+                if (!addCarViewModel.hasUnsavedData()) {
+                    addCarViewModel.resetForm()
+                    showEditSheet = false
+                }
             },
             sheetState = sheetState
         ) {
@@ -248,11 +263,33 @@ fun CarProfileScreen(
                     showEditSheet = false
                 },
                 onCancel = {
-                    addCarViewModel.resetForm()
-                    showEditSheet = false
+                    if (addCarViewModel.hasUnsavedData()) showEditDiscardConfirm = true
+                    else { addCarViewModel.resetForm(); showEditSheet = false }
                 }
             )
         }
+    }
+
+    if (showEditDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showEditDiscardConfirm = false },
+            title = { Text(stringResource(R.string.add_car_discard_title)) },
+            text = { Text(stringResource(R.string.add_car_discard_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showEditDiscardConfirm = false
+                    addCarViewModel.resetForm()
+                    showEditSheet = false
+                }) {
+                    Text(stringResource(R.string.add_car_discard_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDiscardConfirm = false }) {
+                    Text(stringResource(R.string.add_car_discard_cancel))
+                }
+            }
+        )
     }
 
     // ── Stats Sheet ─────────────────────────────────────────────────────
@@ -371,19 +408,7 @@ private fun CarHeroSection(car: Car, topBarPadding: Dp) {
                         color = Color.White.copy(alpha = 0.85f)
                     )
                     Text(text = "·", color = Color.White.copy(alpha = 0.55f))
-                    // Frosted plate badge
-                    Surface(
-                        color = Color.White.copy(alpha = 0.18f),
-                        shape = MaterialTheme.shapes.extraSmall
-                    ) {
-                        Text(
-                            text = car.licensePlate,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-                        )
-                    }
+                    IsraeliLicensePlate(plate = car.licensePlate)
                 }
             }
         } else {
@@ -425,12 +450,8 @@ private fun CarHeroSection(car: Car, topBarPadding: Dp) {
                         fontWeight = FontWeight.Bold,
                         color = textColor
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = car.licensePlate,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = subColor
-                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    IsraeliLicensePlate(plate = car.licensePlate)
                 }
             }
         }

@@ -32,6 +32,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.hananelsabag.autocare.R
@@ -210,6 +212,24 @@ fun CarCard(
                 }
             }
         }
+    }
+}
+
+/** Yellow Israeli license plate badge — shared across all car UI surfaces. */
+@Composable
+fun IsraeliLicensePlate(plate: String) {
+    Box(
+        modifier = Modifier
+            .background(Color(0xFFFFD700), MaterialTheme.shapes.small)
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = plate,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+            letterSpacing = TextUnit(1.5f, TextUnitType.Sp)
+        )
     }
 }
 

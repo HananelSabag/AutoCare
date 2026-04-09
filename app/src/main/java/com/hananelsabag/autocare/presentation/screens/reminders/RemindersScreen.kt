@@ -1,29 +1,31 @@
 package com.hananelsabag.autocare.presentation.screens.reminders
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Autorenew
-import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.NotificationsNone
-import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,15 +35,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,42 +60,23 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.hananelsabag.autocare.R
-import com.hananelsabag.autocare.data.local.entities.ReminderType
-import com.hananelsabag.autocare.presentation.theme.StatusGreen
-import com.hananelsabag.autocare.presentation.theme.StatusGreenContainer
-import com.hananelsabag.autocare.presentation.theme.StatusRed
-import com.hananelsabag.autocare.presentation.theme.StatusRedContainer
-import com.hananelsabag.autocare.presentation.theme.StatusYellow
-import com.hananelsabag.autocare.presentation.theme.StatusYellowContainer
-import com.hananelsabag.autocare.util.StatusLevel
+import com.hananelsabag.autocare.data.local.entities.Car
 
-private val CARD_HEIGHT = 80.dp
-private val PHOTO_WIDTH = 80.dp
-private val ACCENT_BAR_WIDTH = 4.dp
+private const val PICKER_INITIAL_VISIBLE = 4 // 2 rows × 2 cols
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RemindersScreen(onCarClick: (Int) -> Unit) {
-    val viewModel = hiltViewModel<RemindersDashboardViewModel>()
-    val items by viewModel.items.collectAsState()
+    val dashViewModel = hiltViewModel<RemindersDashboardViewModel>()
+    val cars by dashViewModel.cars.collectAsState()
 
-    val urgent = items.filter {
-        it.level == StatusLevel.EXPIRED || it.level == StatusLevel.RED
-    }.sortedBy { it.daysLeft ?: Long.MAX_VALUE }
+    var selectedCarId by remember { mutableIntStateOf(-1) }
 
-    val soon = items.filter {
-        it.level == StatusLevel.YELLOW
-    }.sortedBy { it.daysLeft }
-
-    val ok = items.filter {
-        it.level == StatusLevel.GREEN
-    }.sortedBy { it.daysLeft }
-
-    val unknown = items.filter {
-        it.level == StatusLevel.UNKNOWN
+    LaunchedEffect(cars) {
+        if (selectedCarId == -1 && cars.isNotEmpty()) {
+            selectedCarId = cars.first().id
+        }
     }
-
-    val allGood = urgent.isEmpty() && soon.isEmpty() && ok.isNotEmpty()
 
     Scaffold(
         topBar = {
@@ -94,286 +84,293 @@ fun RemindersScreen(onCarClick: (Int) -> Unit) {
         },
         contentWindowInsets = WindowInsets(0)
     ) { paddingValues ->
-        if (items.isEmpty()) {
+        if (cars.isEmpty()) {
             RemindersEmptyState(modifier = Modifier.padding(paddingValues))
         } else {
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(paddingValues)
             ) {
-                if (allGood) {
-                    item {
-                        AllGoodBanner()
-                    }
-                }
+                CarPickerSection(
+                    cars = cars,
+                    selectedCarId = selectedCarId,
+                    onSelect = { selectedCarId = it }
+                )
 
-                if (urgent.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = stringResource(R.string.reminders_section_urgent),
-                            color = StatusRed,
-                            count = urgent.size
-                        )
-                    }
-                    items(urgent, key = { "${it.car.id}_${it.type}" }) { item ->
-                        ReminderDashboardCard(item = item, onClick = { onCarClick(item.car.id) })
-                    }
-                }
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                )
 
-                if (soon.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = stringResource(R.string.reminders_section_soon),
-                            color = StatusYellow,
-                            count = soon.size
-                        )
-                    }
-                    items(soon, key = { "${it.car.id}_${it.type}" }) { item ->
-                        ReminderDashboardCard(item = item, onClick = { onCarClick(item.car.id) })
-                    }
-                }
+                if (selectedCarId != -1) {
+                    val remindersVm = hiltViewModel<CarRemindersViewModel>(
+                        key = "reminders_car_$selectedCarId"
+                    )
+                    LaunchedEffect(selectedCarId) { remindersVm.init(selectedCarId) }
 
-                if (ok.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = stringResource(R.string.reminders_section_ok),
-                            color = StatusGreen,
-                            count = ok.size
-                        )
-                    }
-                    items(ok, key = { "${it.car.id}_${it.type}" }) { item ->
-                        ReminderDashboardCard(item = item, onClick = { onCarClick(item.car.id) })
-                    }
-                }
-
-                if (unknown.isNotEmpty()) {
-                    items(unknown, key = { "${it.car.id}_${it.type}" }) { item ->
-                        ReminderDashboardCard(item = item, onClick = { onCarClick(item.car.id) })
-                    }
+                    CarRemindersContent(
+                        viewModel = remindersVm,
+                        onSaved = {}
+                    )
                 }
             }
         }
     }
 }
 
+// ── Car picker section ────────────────────────────────────────────────────────
+
 @Composable
-private fun AllGoodBanner() {
+private fun CarPickerSection(
+    cars: List<Car>,
+    selectedCarId: Int,
+    onSelect: (Int) -> Unit
+) {
+    var expanded by remember { mutableStateOf(true) }
+
+    // Collapse once a car is selected
+    LaunchedEffect(selectedCarId) {
+        if (selectedCarId != -1) expanded = false
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (selectedCarId != -1) {
+            val selected = cars.firstOrNull { it.id == selectedCarId }
+            if (selected != null) {
+                SelectedCarHeader(
+                    car = selected,
+                    expanded = expanded,
+                    onClick = { expanded = !expanded }
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = expanded || selectedCarId == -1,
+            enter = expandVertically(tween(280)) + fadeIn(tween(200)),
+            exit = shrinkVertically(tween(280)) + fadeOut(tween(150))
+        ) {
+            CarPickerGrid(
+                cars = cars,
+                selectedCarId = selectedCarId,
+                onSelect = { id ->
+                    onSelect(id)
+                    expanded = false
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectedCarHeader(
+    car: Car,
+    expanded: Boolean,
+    onClick: () -> Unit
+) {
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(280),
+        label = "arrow"
+    )
+
     Surface(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        color = StatusGreenContainer,
-        shape = MaterialTheme.shapes.large
+        color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = null,
-                tint = StatusGreen,
-                modifier = Modifier.size(24.dp)
-            )
-            Column {
+            CarThumbnail(car = car, sizeDp = 44)
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.reminders_all_good_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = StatusGreen
-                )
-                Text(
-                    text = stringResource(R.string.reminders_all_good_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = StatusGreen.copy(alpha = 0.75f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String, color: Color, count: Int) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .background(color, CircleShape)
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = color
-        )
-        Surface(
-            color = color.copy(alpha = 0.12f),
-            shape = CircleShape
-        ) {
-            Text(
-                text = count.toString(),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = color,
-                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-            )
-        }
-        HorizontalDivider(
-            modifier = Modifier.weight(1f),
-            color = color.copy(alpha = 0.25f),
-            thickness = 1.dp
-        )
-    }
-}
-
-@Composable
-private fun ReminderDashboardCard(
-    item: ReminderDashboardItem,
-    onClick: () -> Unit
-) {
-    val accentColor = when (item.level) {
-        StatusLevel.GREEN -> StatusGreen
-        StatusLevel.YELLOW -> StatusYellow
-        StatusLevel.RED, StatusLevel.EXPIRED -> StatusRed
-        StatusLevel.UNKNOWN -> MaterialTheme.colorScheme.outlineVariant
-    }
-    val badgeContainerColor = when (item.level) {
-        StatusLevel.GREEN -> StatusGreenContainer
-        StatusLevel.YELLOW -> StatusYellowContainer
-        StatusLevel.RED, StatusLevel.EXPIRED -> StatusRedContainer
-        StatusLevel.UNKNOWN -> MaterialTheme.colorScheme.surfaceContainerHighest
-    }
-
-    val daysLabel = when {
-        item.expiryMs == null -> stringResource(R.string.reminders_item_no_date)
-        item.daysLeft == null -> stringResource(R.string.reminders_item_no_date)
-        item.daysLeft < 0 -> stringResource(R.string.reminders_item_expired, -item.daysLeft)
-        item.daysLeft == 0L -> stringResource(R.string.reminders_item_expires_today)
-        item.daysLeft == 1L -> stringResource(R.string.reminders_item_expires_tomorrow)
-        else -> stringResource(R.string.reminders_item_days_left, item.daysLeft)
-    }
-
-    ElevatedCard(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(CARD_HEIGHT),
-        shape = MaterialTheme.shapes.large,
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Colored accent bar (start edge)
-            Box(
-                modifier = Modifier
-                    .width(ACCENT_BAR_WIDTH)
-                    .fillMaxHeight()
-                    .background(accentColor)
-            )
-
-            // Car photo thumbnail
-            Box(
-                modifier = Modifier
-                    .width(PHOTO_WIDTH)
-                    .fillMaxHeight()
-            ) {
-                if (item.car.photoUri != null) {
-                    AsyncImage(
-                        model = item.car.photoUri,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    // Scrim for readability
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.1f))
-                                )
-                            )
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        MaterialTheme.colorScheme.secondaryContainer
-                                    )
-                                )
-                            )
-                    )
-                }
-            }
-
-            // Car name + reminder type
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 14.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "${item.car.make} ${item.car.model}",
+                    text = "${car.make} ${car.model}",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        imageVector = item.type.iconVector(),
-                        contentDescription = null,
-                        modifier = Modifier.size(13.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(item.type.labelRes()),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
-                    )
-                }
+                Spacer(Modifier.height(3.dp))
+                LicensePlateMini(plate = car.licensePlate)
             }
 
-            // Days badge
-            Surface(
-                color = badgeContainerColor,
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.padding(end = 14.dp)
+            Icon(
+                imageVector = Icons.Filled.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(22.dp)
+                    .graphicsLayer { rotationZ = arrowRotation },
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun CarPickerGrid(
+    cars: List<Car>,
+    selectedCarId: Int,
+    onSelect: (Int) -> Unit
+) {
+    var showAll by remember { mutableStateOf(false) }
+    val visibleCars = if (showAll || cars.size <= PICKER_INITIAL_VISIBLE) cars
+                      else cars.take(PICKER_INITIAL_VISIBLE)
+    val hiddenCount = cars.size - PICKER_INITIAL_VISIBLE
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .padding(top = 12.dp, bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        visibleCars.chunked(2).forEach { rowCars ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = daysLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = accentColor,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
+                rowCars.forEach { car ->
+                    CarPickerCard(
+                        car = car,
+                        isSelected = car.id == selectedCarId,
+                        onClick = { onSelect(car.id) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                // Fill empty slot when last row has only 1 card
+                if (rowCars.size == 1) Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+
+        if (!showAll && hiddenCount > 0) {
+            TextButton(
+                onClick = { showAll = true },
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text(stringResource(R.string.reminders_show_more_cars, hiddenCount))
             }
         }
     }
 }
+
+@Composable
+private fun CarPickerCard(
+    car: Car,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = MaterialTheme.shapes.large
+    ElevatedCard(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = 88.dp)
+            .border(
+                width = if (isSelected) 1.5.dp else 0.dp,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = shape
+            ),
+        shape = shape,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                             else MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = if (isSelected) 4.dp else 2.dp
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CarThumbnail(car = car, sizeDp = 48)
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "${car.make} ${car.model}",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(4.dp))
+                LicensePlateMini(plate = car.licensePlate)
+            }
+        }
+    }
+}
+
+// ── Private helpers ───────────────────────────────────────────────────────────
+
+@Composable
+private fun CarThumbnail(car: Car, sizeDp: Int) {
+    if (car.photoUri != null) {
+        AsyncImage(
+            model = car.photoUri,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(sizeDp.dp)
+                .clip(CircleShape)
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(sizeDp.dp)
+                .background(
+                    brush = Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.DirectionsCar,
+                contentDescription = null,
+                modifier = Modifier.size((sizeDp * 0.55f).dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun LicensePlateMini(plate: String) {
+    Surface(
+        color = Color(0xFFFFD700),
+        shape = MaterialTheme.shapes.extraSmall
+    ) {
+        Text(
+            text = plate,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+    }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
 
 @Composable
 private fun RemindersEmptyState(modifier: Modifier = Modifier) {
@@ -407,18 +404,4 @@ private fun RemindersEmptyState(modifier: Modifier = Modifier) {
             )
         }
     }
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-private fun ReminderType.labelRes(): Int = when (this) {
-    ReminderType.TEST_EXPIRY -> R.string.reminder_type_test_expiry
-    ReminderType.INSURANCE_EXPIRY -> R.string.reminder_type_insurance_compulsory
-    ReminderType.SERVICE_DATE -> R.string.reminder_type_service_date
-}
-
-private fun ReminderType.iconVector(): ImageVector = when (this) {
-    ReminderType.TEST_EXPIRY -> Icons.Outlined.VerifiedUser
-    ReminderType.INSURANCE_EXPIRY -> Icons.Outlined.Security
-    ReminderType.SERVICE_DATE -> Icons.Outlined.Autorenew
 }

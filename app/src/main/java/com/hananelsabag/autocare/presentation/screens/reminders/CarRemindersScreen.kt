@@ -73,8 +73,6 @@ fun CarRemindersScreen(carId: Int, onBack: () -> Unit) {
     LaunchedEffect(carId) { viewModel.init(carId) }
 
     val car by viewModel.car.collectAsState()
-    val formState by viewModel.formState.collectAsState()
-    val lastMaintenanceDate by viewModel.lastMaintenanceDate.collectAsState()
 
     Scaffold(
         topBar = {
@@ -95,51 +93,64 @@ fun CarRemindersScreen(carId: Int, onBack: () -> Unit) {
         },
         contentWindowInsets = WindowInsets(0)
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(ReminderType.entries, key = { it.ordinal }) { type ->
-                val state = formState[type] ?: return@items
+        CarRemindersContent(
+            viewModel = viewModel,
+            modifier = Modifier.padding(paddingValues),
+            onSaved = onBack
+        )
+    }
+}
 
-                // Determine the expiry date for this reminder type
-                val expiryMs: Long? = when (type) {
-                    ReminderType.TEST_EXPIRY -> car?.testExpiryDate
-                    ReminderType.INSURANCE_EXPIRY -> car?.insuranceExpiryDate
-                    ReminderType.SERVICE_DATE ->
-                        CarRemindersViewModel.serviceDueDate(lastMaintenanceDate)
-                }
+/**
+ * The scrollable reminder list for a single car.
+ * Extracted so it can be embedded inline in [RemindersScreen] without navigation.
+ */
+@Composable
+fun CarRemindersContent(
+    viewModel: CarRemindersViewModel,
+    modifier: Modifier = Modifier,
+    onSaved: () -> Unit
+) {
+    val car by viewModel.car.collectAsState()
+    val formState by viewModel.formState.collectAsState()
+    val lastMaintenanceDate by viewModel.lastMaintenanceDate.collectAsState()
 
-                ReminderCard(
-                    type = type,
-                    state = state,
-                    expiryMs = expiryMs,
-                    isServiceType = type == ReminderType.SERVICE_DATE,
-                    hasNoServiceRecords = type == ReminderType.SERVICE_DATE && lastMaintenanceDate == null,
-                    onEnabledChange = { viewModel.updateEnabled(type, it) },
-                    onDaysChange = { viewModel.updateDays(type, it) }
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(ReminderType.entries, key = { "${car?.id}_${it.ordinal}" }) { type ->
+            val state = formState[type] ?: return@items
+            val expiryMs: Long? = when (type) {
+                ReminderType.TEST_EXPIRY       -> car?.testExpiryDate
+                ReminderType.INSURANCE_EXPIRY  -> car?.insuranceExpiryDate
+                ReminderType.SERVICE_DATE      -> CarRemindersViewModel.serviceDueDate(lastMaintenanceDate)
+            }
+            ReminderCard(
+                type = type,
+                state = state,
+                expiryMs = expiryMs,
+                isServiceType = type == ReminderType.SERVICE_DATE,
+                hasNoServiceRecords = type == ReminderType.SERVICE_DATE && lastMaintenanceDate == null,
+                onEnabledChange = { viewModel.updateEnabled(type, it) },
+                onDaysChange    = { viewModel.updateDays(type, it) }
+            )
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(4.dp))
+            Button(
+                onClick = { viewModel.saveReminders(onSaved = onSaved) },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Text(
+                    text = stringResource(R.string.reminder_save),
+                    style = MaterialTheme.typography.labelLarge
                 )
             }
-
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
-                Button(
-                    onClick = { viewModel.saveReminders(onSaved = onBack) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = MaterialTheme.shapes.large
-                ) {
-                    Text(
-                        text = stringResource(R.string.reminder_save),
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
