@@ -34,6 +34,11 @@
     <string name="car_pager_expired">פג תוקף</string>
     <string name="car_pager_today">היום</string>
     <string name="car_pager_not_set">לא הוגדר</string>
+
+    <!-- Car context menu (long press on pager card) -->
+    <string name="car_context_move_to_first">הזז לראשון</string>
+    <string name="car_context_move_to_last">הזז לאחרון</string>
+    <string name="car_context_delete">מחק רכב</string>
     <string name="screen_reminders_title">תזכורות</string>
     <string name="screen_settings_title">הגדרות</string>
 
@@ -72,6 +77,10 @@
     <string name="add_car_discard_message">הפרטים שהזנת ייאבדו.</string>
     <string name="add_car_discard_confirm">בטל טופס</string>
     <string name="add_car_discard_cancel">המשך עריכה</string>
+    <string name="add_record_discard_title">לבטל את הרשומה?</string>
+    <string name="add_record_discard_message">הפרטים שהזנת ייאבדו.</string>
+    <string name="add_record_discard_confirm">בטל</string>
+    <string name="add_record_discard_cancel">המשך עריכה</string>
 
     <!-- Photo / file source picker -->
     <string name="photo_option_camera">צלם תמונה</string>
@@ -258,6 +267,7 @@
     <string name="reminders_all_good_subtitle">כל התזכורות שלך פעילות ובמצב תקין</string>
     <string name="reminders_empty_title">אין התראות פעילות</string>
     <string name="reminders_empty_subtitle">הפעל התראות מפרופיל הרכב כדי לקבל תזכורות לפני פקיעת תוקף</string>
+    <string name="reminders_show_more_cars">הצג עוד %d</string>
     <string name="reminders_item_days_left">עוד %d ימים</string>
     <string name="reminders_item_expires_today">פג תוקף היום!</string>
     <string name="reminders_item_expires_tomorrow">פג תוקף מחר</string>
@@ -358,6 +368,8 @@
     <string name="settings_about_developer_name">חננאל סבג</string>
 
     <!-- Export / Import -->
+    <string name="export_pdf_saved">PDF נשמר בתיקיית ההורדות</string>
+    <string name="export_pdf_open">פתח</string>
     <string name="export_pdf_generating">מייצא PDF…</string>
     <string name="export_json_generating">שומר גיבוי…</string>
     <string name="export_error">שגיאה בייצוא. נסה שוב.</string>
@@ -373,6 +385,35 @@
     <string name="export_section_test_history">היסטוריית טסטים</string>
     <string name="export_total_cost">סה"כ: ₪%s</string>
     <string name="export_no_records">אין רשומות לייצוא</string>
+    <string name="pdf_report_subtitle">דוח רכב אישי</string>
+    <string name="pdf_section_status">סטטוס רכב</string>
+    <string name="pdf_section_receipts">צילומי קבלות ואסמכתאות</string>
+    <string name="pdf_col_date">תאריך</string>
+    <string name="pdf_col_desc">תיאור</string>
+    <string name="pdf_col_km">ק"מ</string>
+    <string name="pdf_col_cost">עלות</string>
+    <string name="pdf_status_test">טסט</string>
+    <string name="pdf_status_insurance">ביטוח חובה</string>
+    <string name="pdf_status_no_date">לא הוגדר</string>
+    <string name="pdf_status_expired">פג תוקף!</string>
+    <string name="pdf_status_expires_today">פג תוקף היום!</string>
+    <string name="pdf_status_days_short">עוד %1$d ימים · %2$s</string>
+    <string name="pdf_status_valid_until">תקף עד %1$s · עוד %2$d ימים</string>
+    <string name="pdf_stat_total_records">רשומות</string>
+    <string name="pdf_stat_total_cost">הוצאות</string>
+    <string name="pdf_stat_last_service">טיפול אחרון</string>
+    <string name="pdf_stat_tests">טסטים</string>
+    <string name="pdf_stat_passed">עברו</string>
+    <string name="pdf_stat_total">סה"כ</string>
+    <string name="pdf_note_label">הערה:</string>
+    <string name="pdf_color_label">צבע:</string>
+    <string name="pdf_km_label">ק"מ:</string>
+    <string name="pdf_notes_label">הערות:</string>
+    <string name="pdf_total_expenses">סה"כ הוצאות:</string>
+    <string name="pdf_km_unit">ק"מ</string>
+    <string name="pdf_footer">AutoCare · דוח רכב אישי</string>
+    <string name="pdf_page">עמוד %d</string>
+    <string name="pdf_section_upgrades">שדרוגים</string>
     <string name="export_json_saved">גיבוי נשמר ב-Downloads</string>
     <string name="export_json_share">שתף</string>
     <string name="import_json_loading">מייבא נתונים…</string>

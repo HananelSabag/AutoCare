@@ -9,14 +9,15 @@ import com.hananelsabag.autocare.domain.repository.CarRepository
 import com.hananelsabag.autocare.export.JsonExporter
 import com.hananelsabag.autocare.export.JsonImporter
 import com.hananelsabag.autocare.export.PdfExporter
+import com.hananelsabag.autocare.export.PdfExportResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -32,13 +33,15 @@ data class ExportUiState(
 )
 
 sealed class ExportEvent {
-    /** PDF / share intent ready — open chooser */
+    /** PDF saved to MediaStore Downloads (API 29+). */
+    data class PdfSaved(val uri: Uri, val fileName: String) : ExportEvent()
+    /** Generic share sheet intent — used for JSON sharing and API < 29 PDF fallback. */
     data class ShareIntent(val intent: Intent) : ExportEvent()
-    /** JSON backup saved to Downloads — show snackbar with file name */
+    /** JSON backup written to Downloads. */
     data class BackupSaved(val fileName: String, val shareUri: Uri) : ExportEvent()
-    /** Import finished successfully */
+    /** Import finished successfully. */
     data class ImportSuccess(val carsImported: Int) : ExportEvent()
-    /** Any error */
+    /** Any export / import failure. */
     data class Error(val tag: String) : ExportEvent()
 }
 
@@ -66,7 +69,7 @@ class ExportViewModel @Inject constructor(
         when {
             carList.isEmpty() -> viewModelScope.launch { _events.emit(ExportEvent.Error("no_cars")) }
             carList.size == 1 -> startPdfExport(carList[0].id)
-            else -> _uiState.update { it.copy(showCarPicker = true) }
+            else              -> _uiState.update { it.copy(showCarPicker = true) }
         }
     }
 
@@ -84,8 +87,13 @@ class ExportViewModel @Inject constructor(
             _uiState.update { it.copy(isGeneratingPdf = true) }
             runCatching {
                 withContext(Dispatchers.IO) { pdfExporter.exportCar(carId) }
-            }.onSuccess { intent ->
-                _events.emit(ExportEvent.ShareIntent(intent))
+            }.onSuccess { result ->
+                when (result) {
+                    is PdfExportResult.SavedToDownloads ->
+                        _events.emit(ExportEvent.PdfSaved(result.uri, result.fileName))
+                    is PdfExportResult.Share ->
+                        _events.emit(ExportEvent.ShareIntent(result.intent))
+                }
             }.onFailure {
                 _events.emit(ExportEvent.Error("pdf_error"))
             }
@@ -111,8 +119,7 @@ class ExportViewModel @Inject constructor(
 
     fun onShareBackup(uri: Uri) {
         viewModelScope.launch {
-            val intent = jsonExporter.buildShareIntent(uri)
-            _events.emit(ExportEvent.ShareIntent(intent))
+            _events.emit(ExportEvent.ShareIntent(jsonExporter.buildShareIntent(uri)))
         }
     }
 
@@ -130,11 +137,5 @@ class ExportViewModel @Inject constructor(
             }
             _uiState.update { it.copy(isImporting = false) }
         }
-    }
-
-    // ── Error ─────────────────────────────────────────────────────────────────
-
-    fun clearError() {
-        _uiState.update { it.copy(error = null) }
     }
 }

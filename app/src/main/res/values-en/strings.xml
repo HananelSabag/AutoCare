@@ -34,6 +34,11 @@
     <string name="car_pager_expired">Expired</string>
     <string name="car_pager_today">Today</string>
     <string name="car_pager_not_set">Not set</string>
+
+    <!-- Car context menu (long press on pager card) -->
+    <string name="car_context_move_to_first">Move to First</string>
+    <string name="car_context_move_to_last">Move to Last</string>
+    <string name="car_context_delete">Delete Car</string>
     <string name="screen_reminders_title">Reminders</string>
     <string name="screen_settings_title">Settings</string>
 
@@ -70,6 +75,10 @@
     <string name="add_car_discard_message">The details you entered will be lost.</string>
     <string name="add_car_discard_confirm">Discard</string>
     <string name="add_car_discard_cancel">Keep editing</string>
+    <string name="add_record_discard_title">Discard record?</string>
+    <string name="add_record_discard_message">The details you entered will be lost.</string>
+    <string name="add_record_discard_confirm">Discard</string>
+    <string name="add_record_discard_cancel">Keep editing</string>
 
     <!-- Photo / file source picker -->
     <string name="photo_option_camera">Take Photo</string>
@@ -252,6 +261,7 @@
     <string name="reminders_all_good_subtitle">All your reminders are active and up to date</string>
     <string name="reminders_empty_title">No active reminders</string>
     <string name="reminders_empty_subtitle">Enable reminders from a car profile to get notified before expiry</string>
+    <string name="reminders_show_more_cars">Show %d more</string>
     <string name="reminders_item_days_left">%d days left</string>
     <string name="reminders_item_expires_today">Expires today!</string>
     <string name="reminders_item_expires_tomorrow">Expires tomorrow</string>
@@ -350,6 +360,8 @@
     <string name="settings_about_developer_name">Hananel Sabag</string>
 
     <!-- Export -->
+    <string name="export_pdf_saved">PDF saved to Downloads</string>
+    <string name="export_pdf_open">Open</string>
     <string name="export_pdf_generating">Generating PDF…</string>
     <string name="export_json_generating">Generating backup…</string>
     <string name="export_error">Export failed. Please try again.</string>
@@ -365,6 +377,36 @@
     <string name="export_section_test_history">Test History</string>
     <string name="export_total_cost">Total: ₪%s</string>
     <string name="export_no_records">No records to export</string>
+
+    <string name="pdf_report_subtitle">Personal Car Report</string>
+    <string name="pdf_section_status">Vehicle Status</string>
+    <string name="pdf_section_receipts">Receipts &amp; Documentation</string>
+    <string name="pdf_col_date">Date</string>
+    <string name="pdf_col_desc">Description</string>
+    <string name="pdf_col_km">KM</string>
+    <string name="pdf_col_cost">Cost</string>
+    <string name="pdf_status_test">Test (Teudat Zehut)</string>
+    <string name="pdf_status_insurance">Mandatory Insurance</string>
+    <string name="pdf_status_no_date">Not set</string>
+    <string name="pdf_status_expired">Expired!</string>
+    <string name="pdf_status_expires_today">Expires today!</string>
+    <string name="pdf_status_days_short">%1$d days left · %2$s</string>
+    <string name="pdf_status_valid_until">Valid until %1$s · %2$d days left</string>
+    <string name="pdf_stat_total_records">Records</string>
+    <string name="pdf_stat_total_cost">Expenses</string>
+    <string name="pdf_stat_last_service">Last Service</string>
+    <string name="pdf_stat_tests">Tests</string>
+    <string name="pdf_stat_passed">Passed</string>
+    <string name="pdf_stat_total">Total</string>
+    <string name="pdf_note_label">Note:</string>
+    <string name="pdf_color_label">Color:</string>
+    <string name="pdf_km_label">KM:</string>
+    <string name="pdf_notes_label">Notes:</string>
+    <string name="pdf_total_expenses">Total Expenses:</string>
+    <string name="pdf_km_unit">km</string>
+    <string name="pdf_footer">AutoCare · Personal Car Report</string>
+    <string name="pdf_page">Page %d</string>
+    <string name="pdf_section_upgrades">Upgrades</string>
 
     <!-- Image Crop Sheet -->
     <string name="image_crop_title">Frame Photo</string>
