@@ -12,8 +12,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CarDao {
 
-    @Query("SELECT * FROM cars ORDER BY createdAt DESC")
+    @Query("SELECT * FROM cars ORDER BY displayOrder ASC, createdAt DESC")
     fun getAllCars(): Flow<List<Car>>
+
+    @Query("SELECT COALESCE(MAX(displayOrder), -1) FROM cars")
+    suspend fun getMaxDisplayOrder(): Int
 
     @Query("SELECT * FROM cars WHERE id = :id")
     fun getCarById(id: Int): Flow<Car?>

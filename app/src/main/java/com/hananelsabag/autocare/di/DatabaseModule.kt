@@ -144,6 +144,26 @@ private fun safeMigrateTo7(from: Int) = object : Migration(from, 7) {
 // One migration object per source version so Room finds the direct path.
 private val MIGRATIONS_TO_7 = Array(6) { i -> safeMigrateTo7(i + 1) }
 
+// v7 → v8: adds displayOrder column to cars for user-controlled card ordering.
+// Initialises existing rows so their visual order (createdAt DESC) is preserved.
+private val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE `cars` ADD COLUMN `displayOrder` INTEGER NOT NULL DEFAULT 0"
+        )
+        // Assign sequential displayOrder values that match the current createdAt DESC order
+        // so users upgrading from v7 see no visual change.
+        val cursor = db.query("SELECT id FROM cars ORDER BY createdAt DESC")
+        var order = 0
+        while (cursor.moveToNext()) {
+            val id = cursor.getInt(0)
+            db.execSQL("UPDATE cars SET displayOrder = $order WHERE id = $id")
+            order++
+        }
+        cursor.close()
+    }
+}
+
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
@@ -152,7 +172,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "autocare.db")
-            .addMigrations(*MIGRATIONS_TO_7)
+            .addMigrations(*MIGRATIONS_TO_7, MIGRATION_7_8)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
                     super.onOpen(db)

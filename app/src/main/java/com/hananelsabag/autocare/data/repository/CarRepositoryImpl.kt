@@ -13,4 +13,5 @@ class CarRepositoryImpl @Inject constructor(
     override suspend fun insertCar(car: Car) = carDao.insertCar(car)
     override suspend fun updateCar(car: Car) = carDao.updateCar(car)
     override suspend fun deleteCar(car: Car) = carDao.deleteCar(car)
+    override suspend fun getMaxDisplayOrder() = carDao.getMaxDisplayOrder()
 }

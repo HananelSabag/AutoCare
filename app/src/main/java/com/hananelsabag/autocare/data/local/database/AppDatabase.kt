@@ -16,7 +16,7 @@ import com.hananelsabag.autocare.data.local.entities.VehicleRecord
 
 @Database(
     entities = [Car::class, MaintenanceRecord::class, Reminder::class, TestRecord::class, VehicleRecord::class],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

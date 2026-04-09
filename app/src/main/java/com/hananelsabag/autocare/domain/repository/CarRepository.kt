@@ -9,4 +9,5 @@ interface CarRepository {
     suspend fun insertCar(car: Car): Long
     suspend fun updateCar(car: Car)
     suspend fun deleteCar(car: Car)
+    suspend fun getMaxDisplayOrder(): Int
 }

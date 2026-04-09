@@ -19,5 +19,6 @@ data class Car(
     val testExpiryDate: Long? = null,
     val insuranceExpiryDate: Long? = null,
     val notes: String? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val displayOrder: Int = 0
 )
