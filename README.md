@@ -10,34 +10,39 @@ Hebrew-first, RTL-ready, Material You design with full Light / Dark / System the
 
 **Car Management**
 - Add multiple cars with make/model dropdowns (35+ brands, 150+ models), photo, license plate, color picker, and expiry dates
-- Car profile with hero photo, status banner, quick stats, and navigation to all sub-sections
+- Car catalog with full-bleed photo cards, long-press to reorder or delete
+- Car profile with hero photo, status banner, action tiles, and quick stats
 - Full edit and delete with cascade cleanup of all related data
 
 **Maintenance History**
 - Log every service, repair, or wear item (tires, brakes, battery)
 - Attach a receipt photo to any record — works as a digital car logbook
-- Cost tracking with running totals and yearly statistics
-
-**Test (MOT) History**
-- Pass/fail records with optional certificate photo
-- Quick access from car profile
+- Cost tracking with running totals and per-type breakdown
 
 **Smart Reminders**
-- Per-car reminders for: test (MOT) expiry, compulsory insurance expiry, periodic service
+- Per-car reminders for: test (MOT) expiry, insurance expiry, periodic service
 - Escalation schedule: first alert at 60 days → 30 days → weekly → twice daily in the last week
-- Test expiry reminder includes a prompt to bring the insurance certificate
-- All reminders individually toggleable with custom lead-time
+- All reminders individually toggleable with custom lead-time window
 
 **Documents**
-- Store photos of compulsory insurance and vehicle license per car
+- Store test certificate and insurance documents per car (image or PDF)
+- Full document history with active/archived status
 
-**Export**
-- PDF report per car: summary, maintenance table with receipt indicators, test history, embedded receipt images
-- JSON full backup of all data (all cars, records, reminders, documents)
+**Export & Backup**
+- PDF report per car with full details, photos, and maintenance table
+- JSON full backup of all data — export and reimport to restore everything
+- JSON import: restore all cars and records from a backup file
 
 **Settings**
 - Theme: System / Light / Dark (persisted across sessions)
-- Language: System / עברית / English (live switching, no restart needed)
+- Language: System / עברית / English (live switching)
+- Notification permission management
+
+---
+
+## Screenshots
+
+*Coming soon*
 
 ---
 
@@ -48,7 +53,7 @@ Hebrew-first, RTL-ready, Material You design with full Light / Dark / System the
 | Language | Kotlin |
 | UI | Jetpack Compose + Material 3 + Material You (dynamic color) |
 | Architecture | MVVM + Clean Architecture (data / domain / presentation) |
-| Database | Room (with type converters) |
+| Database | Room v7 (with full migrations — data safe on upgrade) |
 | DI | Hilt |
 | Navigation | Navigation Compose |
 | Preferences | DataStore |
@@ -71,23 +76,17 @@ com.hananelsabag.autocare/
 ├── domain/
 │   └── repository/     # Repository interfaces
 ├── presentation/
-│   ├── components/     # Reusable composables (CarCard, etc.)
+│   ├── components/     # Reusable composables (CarCard, CarPager, etc.)
 │   ├── navigation/     # Nav graph + Screen sealed class
 │   ├── screens/        # One package per screen
 │   └── theme/          # Material 3 theme, colors, typography
 ├── notifications/      # WorkManager worker + notification helper
-├── export/             # PDF and JSON exporters
+├── export/             # PDF and JSON exporters + JSON importer
 ├── di/                 # Hilt modules
-└── util/               # Extensions, status logic, car data
+└── util/               # Extensions, status logic, car data, form utils
 ```
 
 Clean Architecture layers are kept strict — the presentation layer never imports Room entities directly from the data layer *(with the pragmatic exception that entities serve as domain models to keep the project lean — no mapper boilerplate)*.
-
----
-
-## Screenshots
-
-*Coming soon*
 
 ---
 
@@ -101,14 +100,9 @@ No API keys or external services required — fully local, fully offline.
 
 ---
 
-## Status
+## Download
 
-Active development. Core features are complete and in daily use.
-
-**Roadmap:**
-- Excel / CSV export
-- Statistics deep-dive (cost per km, spending trends)
-- Proper Room migrations before public release
+See [Releases](https://github.com/HananelSabag/AutoCare/releases) for the latest APK.
 
 ---
 
@@ -116,4 +110,4 @@ Active development. Core features are complete and in daily use.
 
 **Hananel Sabag** — Android developer
 
-[LinkedIn](https://www.linkedin.com/in/hananel-sabag) · [GitHub](https://github.com/HanSab)
+[LinkedIn](https://www.linkedin.com/in/hananel-sabag) · [GitHub](https://github.com/HananelSabag)
