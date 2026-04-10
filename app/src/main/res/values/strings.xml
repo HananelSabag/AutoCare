@@ -57,6 +57,7 @@
     <string name="add_car_photo_subtitle">אופציונלי</string>
     <string name="add_car_photo_tap_change">הקש לשינוי תמונה</string>
     <string name="add_car_section_required">פרטי חובה</string>
+    <string name="add_car_required_legend">* שדות חובה למילוי</string>
     <string name="add_car_section_optional">פרטים נוספים (אופציונלי)</string>
     <string name="add_car_section_dates">תאריכי תוקף</string>
     <string name="add_car_make">יצרן</string>
@@ -208,6 +209,7 @@
     <string name="record_receipt_label">קבלה / תמונת חלק</string>
     <string name="record_receipt_add">הוסף קבלה או תמונת חלק</string>
     <string name="add_record_save">שמור טיפול</string>
+    <string name="record_required_legend">* שדות חובה למילוי</string>
     <string name="record_km_format">%s ק"מ</string>
     <string name="record_cost_format">₪%s</string>
 
@@ -442,9 +444,11 @@
 
     <!-- Image Crop Sheet -->
     <string name="image_crop_title">כוון תמונה</string>
-    <string name="image_crop_hint">הזזה וצביטה לכיוון התמונה</string>
-    <string name="image_crop_confirm">אישור</string>
+    <string name="image_crop_hint">צבוט להגדלה · גרור למיסגור</string>
+    <string name="image_crop_confirm">השתמש</string>
     <string name="image_crop_saving">שומר…</string>
+    <string name="image_crop_reset">אפס תצוגה</string>
+    <string name="image_crop_zoom_level">%s×</string>
 
     <!-- Car colors (keys stored in DB; these are display names per language) -->
     <string name="color_white">לבן</string>
