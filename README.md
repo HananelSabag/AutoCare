@@ -1,4 +1,4 @@
-# AutoCare 🚗
+# AutoCare
 
 A personal car maintenance tracker for Android — built as a portfolio-quality app that I actually use on my own cars.
 
@@ -6,37 +6,55 @@ Hebrew-first, RTL-ready, Material You design with full Light / Dark / System the
 
 ---
 
+## Download
+
+**[AutoCare.apk](AutoCare.apk)** — debug build, signed, ready to sideload (Android 8.0+)
+
+> Enable *Install from unknown sources* in your device settings before installing.
+
+---
+
 ## Features
 
-**Car Management**
-- Add multiple cars with make/model dropdowns (35+ brands, 150+ models), photo, license plate, color picker, and expiry dates
-- Car catalog with full-bleed photo cards, long-press to reorder or delete
-- Car profile with hero photo, status banner, action tiles, and quick stats
-- Full edit and delete with cascade cleanup of all related data
+### Car Management
+- Add multiple cars with make/model dropdowns (35+ brands, 150+ models), photo, color picker, license plate, year, and expiry dates
+- Full-bleed photo card catalog with HorizontalPager — peek-based swipe between cars
+- Long-press enters **edit mode**: in-place left/right arrows to reorder, delete button, scroll locked — no bottom sheet
+- Car profile with hero photo, transparent top bar, status banner, action tiles, and stats
+- Full edit and delete with cascade cleanup of all related records and reminders
 
-**Maintenance History**
-- Log every service, repair, or wear item (tires, brakes, battery)
-- Attach a receipt photo to any record — works as a digital car logbook
+### Maintenance History
+- Three record types: **Maintenance** (periodic service, km required), **Repair** (one-off fixes, km optional), **Wear** (tires, brakes, battery, wipers, km optional)
+- Attach a receipt or part photo to any record
+- Quick-fill suggestion chips per record type
 - Cost tracking with running totals and per-type breakdown
 
-**Smart Reminders**
-- Per-car reminders for: test (MOT) expiry, insurance expiry, periodic service
-- Escalation schedule: first alert at 60 days → 30 days → weekly → twice daily in the last week
-- All reminders individually toggleable with custom lead-time window
+### Smart Reminders
+- Per-car reminders for: test (MOT) expiry, insurance expiry, and periodic service date
+- Three notification windows: **60 days** / **30 days** / **7 days** before expiry
+- Escalating schedule per window — e.g. 60-day window fires at: 60 → 30 → 23 → 16 → 9 days, then daily in the last 7
+- Last 7 days always active regardless of window choice
+- Live **"next alert" date** shown per reminder based on actual expiry + selected window
+- Each reminder individually toggleable per car
 
-**Documents**
-- Store test certificate and insurance documents per car (image or PDF)
-- Full document history with active/archived status
+### Statistics
+- Cost breakdown by record type with a Canvas bar chart
+- Total spend, record count, and average cost per service
+- Only shown when at least 2 maintenance records exist
 
-**Export & Backup**
-- PDF report per car with full details, photos, and maintenance table
-- JSON full backup of all data — export and reimport to restore everything
-- JSON import: restore all cars and records from a backup file
+### Documents
+- Store test certificate and insurance documents per car (image or PDF) with expiry date
+- In-app photo framing: pinch-to-zoom, pan with edge clamping, rule-of-thirds grid, reset button
+- Full document history with active/archived badges
 
-**Settings**
-- Theme: System / Light / Dark (persisted across sessions)
-- Language: System / עברית / English (live switching)
-- Notification permission management
+### Export & Backup
+- **PDF report** per car — hero photo, car details, full maintenance table with receipt photos
+- **JSON backup** — full export of all cars and records; import restores everything by car ID
+
+### Settings
+- Theme: System / Light / Dark (persisted via DataStore)
+- Language: System / עברית / English (live switching via AppCompatDelegate)
+- Notification permission management with a **test notification** button to verify delivery
 
 ---
 
@@ -53,7 +71,7 @@ Hebrew-first, RTL-ready, Material You design with full Light / Dark / System the
 | Language | Kotlin |
 | UI | Jetpack Compose + Material 3 + Material You (dynamic color) |
 | Architecture | MVVM + Clean Architecture (data / domain / presentation) |
-| Database | Room v7 (with full migrations — data safe on upgrade) |
+| Database | Room v7 — real migrations, data safe on upgrade |
 | DI | Hilt |
 | Navigation | Navigation Compose |
 | Preferences | DataStore |
@@ -76,7 +94,7 @@ com.hananelsabag.autocare/
 ├── domain/
 │   └── repository/     # Repository interfaces
 ├── presentation/
-│   ├── components/     # Reusable composables (CarCard, CarPager, etc.)
+│   ├── components/     # Reusable composables (CarPager, ImageCropSheet, …)
 │   ├── navigation/     # Nav graph + Screen sealed class
 │   ├── screens/        # One package per screen
 │   └── theme/          # Material 3 theme, colors, typography
@@ -97,12 +115,6 @@ Clean Architecture layers are kept strict — the presentation layer never impor
 3. Run on a device or emulator (API 26+)
 
 No API keys or external services required — fully local, fully offline.
-
----
-
-## Download
-
-See [Releases](https://github.com/HananelSabag/AutoCare/releases) for the latest APK.
 
 ---
 
