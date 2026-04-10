@@ -32,7 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Build
@@ -64,7 +64,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -97,6 +99,20 @@ fun MaintenanceHistoryScreen(carId: Int, onBack: () -> Unit) {
     var selectedRecord by remember { mutableStateOf<MaintenanceRecord?>(null) }
     var recordToEdit by remember { mutableStateOf<MaintenanceRecord?>(null) }
     var recordToDelete by remember { mutableStateOf<MaintenanceRecord?>(null) }
+
+    // Hoisted so the discard dialog can call sheetState.expand() on "continue editing"
+    val addSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { newValue ->
+            if (newValue == SheetValue.Hidden && recordFormIsDirty) {
+                showDiscardConfirm = true
+                false // keep the sheet open
+            } else {
+                true
+            }
+        }
+    )
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -157,31 +173,19 @@ fun MaintenanceHistoryScreen(carId: Int, onBack: () -> Unit) {
     }
 
     // ── Add / Edit Sheet ────────────────────────────────────────
+    fun closeSheet() {
+        recordFormIsDirty = false
+        showAddSheet = false
+        recordToEdit = null
+    }
+
     if (showAddSheet || recordToEdit != null) {
-        val sheetState = rememberModalBottomSheetState(
-            skipPartiallyExpanded = true,
-            confirmValueChange = { newValue ->
-                if (newValue == SheetValue.Hidden && recordFormIsDirty) {
-                    showDiscardConfirm = true
-                    false  // keep the sheet open
-                } else {
-                    true
-                }
-            }
-        )
-
-        fun closeSheet() {
-            recordFormIsDirty = false
-            showAddSheet = false
-            recordToEdit = null
-        }
-
         ModalBottomSheet(
             onDismissRequest = {
                 if (!recordFormIsDirty) closeSheet()
                 // If dirty: confirmValueChange showed the dialog; sheet stays open.
             },
-            sheetState = sheetState
+            sheetState = addSheetState
         ) {
             AddMaintenanceRecordSheet(
                 carId = carId,
@@ -203,16 +207,18 @@ fun MaintenanceHistoryScreen(carId: Int, onBack: () -> Unit) {
     // ── Discard confirmation ─────────────────────────────────────
     if (showDiscardConfirm) {
         AlertDialog(
-            onDismissRequest = { showDiscardConfirm = false },
+            onDismissRequest = {
+                // Tapping outside the dialog = "continue editing"
+                showDiscardConfirm = false
+                scope.launch { addSheetState.expand() }
+            },
             title = { Text(stringResource(R.string.add_record_discard_title)) },
             text = { Text(stringResource(R.string.add_record_discard_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showDiscardConfirm = false
-                        recordFormIsDirty = false
-                        showAddSheet = false
-                        recordToEdit = null
+                        closeSheet()
                     }
                 ) {
                     Text(
@@ -222,7 +228,12 @@ fun MaintenanceHistoryScreen(carId: Int, onBack: () -> Unit) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDiscardConfirm = false }) {
+                TextButton(
+                    onClick = {
+                        showDiscardConfirm = false
+                        scope.launch { addSheetState.expand() }
+                    }
+                ) {
                     Text(stringResource(R.string.add_record_discard_cancel))
                 }
             }
@@ -615,7 +626,7 @@ private fun RecordDetailSheet(
                     modifier = Modifier.height(32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.OpenInNew,
+                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp)
                     )
