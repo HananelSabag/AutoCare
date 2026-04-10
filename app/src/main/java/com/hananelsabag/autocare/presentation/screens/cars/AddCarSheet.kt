@@ -14,12 +14,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -35,24 +37,29 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -63,6 +70,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,7 +79,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -86,6 +93,7 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.launch
 import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.presentation.components.ImageCropSheet
 import com.hananelsabag.autocare.util.CAR_MAKES
@@ -176,7 +184,7 @@ private fun createTempCameraUri(context: Context): Uri {
 
 // ── Sheet content ─────────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddCarSheetContent(
     viewModel: AddCarViewModel,
@@ -184,7 +192,6 @@ fun AddCarSheetContent(
     onCancel: () -> Unit
 ) {
     val context = LocalContext.current
-    val keyboardController = LocalSoftwareKeyboardController.current
 
     // Holds the picked URI before cropping — null means no crop sheet open
     var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
@@ -210,20 +217,8 @@ fun AddCarSheetContent(
         if (success) { cameraPhotoUri?.let { pendingCropUri = it } }
     }
 
-    var makeExpanded by remember { mutableStateOf(false) }
-    val makeQuery = viewModel.make
-    val filteredMakes = remember(makeQuery) {
-        if (makeQuery.isBlank()) CAR_MAKES
-        else CAR_MAKES.filter { it.contains(makeQuery, ignoreCase = true) }
-    }
-
-    var modelExpanded by remember { mutableStateOf(false) }
-    val modelQuery = viewModel.model
-    val modelSuggestions = remember(viewModel.make) { modelsForMake(viewModel.make) }
-    val filteredModels = remember(modelQuery, modelSuggestions) {
-        if (modelQuery.isBlank()) modelSuggestions
-        else modelSuggestions.filter { it.contains(modelQuery, ignoreCase = true) }
-    }
+    var showMakePicker by remember { mutableStateOf(false) }
+    var showModelPicker by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -384,157 +379,122 @@ fun AddCarSheetContent(
         // ── Required fields ──────────────────────────────────────────
         SectionHeader(stringResource(R.string.add_car_section_required))
 
-        // Make dropdown
-        ExposedDropdownMenuBox(
-            expanded = makeExpanded && filteredMakes.isNotEmpty(),
-            onExpandedChange = { makeExpanded = it; if (it) keyboardController?.hide() },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        ) {
-            OutlinedTextField(
-                value = viewModel.make,
-                onValueChange = {
-                    viewModel.make = it
-                    makeExpanded = true
-                    if (viewModel.model.isNotBlank() && modelsForMake(it).isNotEmpty()) {
-                        viewModel.model = ""
-                    }
-                },
-                label = { Text(stringResource(R.string.add_car_make)) },
-                isError = viewModel.makeError != null,
-                supportingText = viewModel.makeError?.let {
-                    { Text(stringResource(R.string.error_field_required)) }
-                },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(
-                        expanded = makeExpanded && filteredMakes.isNotEmpty()
-                    )
-                },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryEditable),
-                shape = MaterialTheme.shapes.medium
-            )
-            if (filteredMakes.isNotEmpty()) {
-                ExposedDropdownMenu(
-                    expanded = makeExpanded,
-                    onDismissRequest = { makeExpanded = false }
-                ) {
-                    val displayMakes = filteredMakes.take(10)
-                    displayMakes.forEach { make ->
-                        DropdownMenuItem(
-                            text = { Text(make, style = MaterialTheme.typography.bodyMedium) },
-                            onClick = {
-                                viewModel.make = make
-                                viewModel.model = ""
-                                makeExpanded = false
-                            }
-                        )
-                    }
-                    if (filteredMakes.size > 10) {
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    "ועוד ${filteredMakes.size - 10}…",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            onClick = { makeExpanded = false },
-                            enabled = false
-                        )
-                    }
-                }
-            }
-        }
-
-        // Model dropdown
-        ExposedDropdownMenuBox(
-            expanded = modelExpanded && filteredModels.isNotEmpty(),
-            onExpandedChange = { modelExpanded = it; if (it) keyboardController?.hide() },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        ) {
-            OutlinedTextField(
-                value = viewModel.model,
-                onValueChange = {
-                    viewModel.model = it
-                    modelExpanded = true
-                },
-                label = { Text(stringResource(R.string.add_car_model)) },
-                placeholder = {
-                    Text(
-                        stringResource(R.string.add_car_model_hint),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                },
-                isError = viewModel.modelError != null,
-                supportingText = viewModel.modelError?.let {
-                    { Text(stringResource(R.string.error_field_required)) }
-                },
-                trailingIcon = if (filteredModels.isNotEmpty()) {
-                    {
-                        ExposedDropdownMenuDefaults.TrailingIcon(
-                            expanded = modelExpanded && filteredModels.isNotEmpty()
-                        )
-                    }
-                } else null,
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .then(
-                        if (filteredModels.isNotEmpty())
-                            Modifier.menuAnchor(MenuAnchorType.PrimaryEditable)
-                        else Modifier
-                    ),
-                shape = MaterialTheme.shapes.medium
-            )
-            if (filteredModels.isNotEmpty()) {
-                ExposedDropdownMenu(
-                    expanded = modelExpanded,
-                    onDismissRequest = { modelExpanded = false }
-                ) {
-                    val displayModels = filteredModels.take(10)
-                    displayModels.forEach { model ->
-                        DropdownMenuItem(
-                            text = { Text(model, style = MaterialTheme.typography.bodyMedium) },
-                            onClick = {
-                                viewModel.model = model
-                                modelExpanded = false
-                            }
-                        )
-                    }
-                    if (filteredModels.size > 10) {
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    "ועוד ${filteredModels.size - 10}…",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            onClick = { modelExpanded = false },
-                            enabled = false
-                        )
-                    }
-                }
-            }
-        }
-
-        // Year quick-pick chips — last 7 years
-        val currentYear = remember { java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) }
-        val yearChips = remember(currentYear) { (0..6).map { (currentYear - it).toString() } }
-        FlowRow(
+        // Make picker field
+        PickerField(
+            label = stringResource(R.string.add_car_make),
+            value = viewModel.make.ifBlank { null },
+            placeholder = stringResource(R.string.add_car_make_select),
+            error = viewModel.makeError != null,
+            errorText = stringResource(R.string.error_field_required),
+            onClick = { showMakePicker = true },
+            onClear = { viewModel.make = ""; viewModel.model = "" },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+        )
+
+        // Model picker field
+        PickerField(
+            label = stringResource(R.string.add_car_model),
+            value = viewModel.model.ifBlank { null },
+            placeholder = if (viewModel.make.isBlank())
+                stringResource(R.string.add_car_picker_select_make_first)
+            else
+                stringResource(R.string.add_car_model_hint),
+            error = viewModel.modelError != null,
+            errorText = stringResource(R.string.error_field_required),
+            enabled = viewModel.make.isNotBlank(),
+            onClick = { showModelPicker = true },
+            onClear = { viewModel.model = "" },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+        )
+
+        // Year quick-pick chips — last 7 years, collapsible
+        val currentYear = remember { java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) }
+        val yearChips = remember(currentYear) { (0..6).map { (currentYear - it).toString() } }
+        var yearChipsExpanded by remember { mutableStateOf(true) }
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
+            tonalElevation = 0.dp
         ) {
-            yearChips.forEach { chipYear ->
-                FilterChip(
-                    selected = viewModel.year == chipYear,
-                    onClick = { viewModel.year = chipYear },
-                    label = { Text(chipYear, style = MaterialTheme.typography.labelSmall) }
-                )
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { yearChipsExpanded = !yearChipsExpanded }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.add_car_year_quick_pick),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (!yearChipsExpanded && viewModel.year.isNotBlank()) {
+                        Text(
+                            text = viewModel.year,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(end = 6.dp)
+                        )
+                    }
+                    Icon(
+                        imageVector = if (yearChipsExpanded) Icons.Filled.KeyboardArrowUp
+                                      else Icons.Filled.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                AnimatedVisibility(
+                    visible = yearChipsExpanded,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        yearChips.forEach { chipYear ->
+                            FilterChip(
+                                selected = viewModel.year == chipYear,
+                                onClick = { viewModel.year = chipYear },
+                                label = {
+                                    Text(chipYear, style = MaterialTheme.typography.labelMedium)
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
+                                border = if (viewModel.year == chipYear)
+                                    FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = true,
+                                        selectedBorderColor = MaterialTheme.colorScheme.primary,
+                                        selectedBorderWidth = 1.5.dp
+                                    )
+                                else
+                                    FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = false,
+                                        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                    )
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -667,10 +627,43 @@ fun AddCarSheetContent(
             )
         }
     }
+
+    // ── Make picker sheet ─────────────────────────────────────────
+    if (showMakePicker) {
+        SearchPickerSheet(
+            title = stringResource(R.string.add_car_make),
+            searchHint = stringResource(R.string.add_car_picker_search_make),
+            items = CAR_MAKES,
+            selectedItem = viewModel.make,
+            onItemSelected = { make ->
+                if (!make.equals(viewModel.make, ignoreCase = true)) {
+                    viewModel.make = make
+                    // Clear model if it came from suggestions for the previous make
+                    if (viewModel.model.isNotBlank() && modelsForMake(make).isNotEmpty()) {
+                        viewModel.model = ""
+                    }
+                }
+            },
+            onDismiss = { showMakePicker = false }
+        )
+    }
+
+    // ── Model picker sheet ────────────────────────────────────────
+    if (showModelPicker) {
+        SearchPickerSheet(
+            title = stringResource(R.string.add_car_model),
+            searchHint = stringResource(R.string.add_car_picker_search_model),
+            items = modelsForMake(viewModel.make),
+            selectedItem = viewModel.model,
+            onItemSelected = { model -> viewModel.model = model },
+            onDismiss = { showModelPicker = false }
+        )
+    }
 }
 
 // ── Compact color strip — placed right below the photo ───────────────────────
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CompactColorStrip(
     selectedColor: String,
@@ -845,14 +838,19 @@ private fun CompactColorCircle(
 @Composable
 private fun SectionHeader(title: String) {
     Column(modifier = Modifier.fillMaxWidth()) {
+        Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 4.dp)
         )
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
         Spacer(modifier = Modifier.height(4.dp))
     }
 }
@@ -985,6 +983,272 @@ private fun DatePickerField(
             }
         ) {
             DatePicker(state = state)
+        }
+    }
+}
+
+// ── PickerField — tappable card that opens a bottom-sheet picker ──────────────
+
+@Composable
+private fun PickerField(
+    label: String,
+    value: String?,
+    placeholder: String,
+    error: Boolean,
+    errorText: String,
+    onClick: () -> Unit,
+    onClear: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    Column(modifier = modifier) {
+        OutlinedCard(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
+            shape = MaterialTheme.shapes.medium,
+            border = when {
+                error -> BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                else -> CardDefaults.outlinedCardBorder(enabled)
+            }
+        ) {
+            Row(
+                modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 14.dp, bottom = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = when {
+                            error -> MaterialTheme.colorScheme.error
+                            !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = value ?: placeholder,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = when {
+                            !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            value != null -> MaterialTheme.colorScheme.onSurface
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        }
+                    )
+                }
+                if (value != null && enabled && onClear != null) {
+                    IconButton(onClick = onClear, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Filled.Clear,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
+                               else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(20.dp)
+                    )
+                }
+            }
+        }
+        if (error) {
+            Text(
+                text = errorText,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+    }
+}
+
+// ── SearchPickerSheet — searchable bottom-sheet list picker ──────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchPickerSheet(
+    title: String,
+    searchHint: String,
+    items: List<String>,
+    selectedItem: String,
+    onItemSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val pickerScope = rememberCoroutineScope()
+
+    fun selectAndClose(value: String) {
+        onItemSelected(value)
+        pickerScope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+    }
+
+    var query by remember { mutableStateOf("") }
+
+    val filtered = remember(query, items) {
+        if (query.isBlank()) items
+        else items.filter { it.contains(query, ignoreCase = true) }
+    }
+    val typedNotInList = query.isNotBlank() &&
+        filtered.none { it.equals(query.trim(), ignoreCase = true) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+        ) {
+            // Header
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    Icon(imageVector = Icons.Filled.Close, contentDescription = null)
+                }
+            }
+
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+
+            // Search field — keyboard opens here, not on the main form
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = {
+                    Text(
+                        text = searchHint,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                trailingIcon = if (query.isNotBlank()) {
+                    {
+                        IconButton(onClick = { query = "" }) {
+                            Icon(imageVector = Icons.Filled.Clear, contentDescription = null)
+                        }
+                    }
+                } else null,
+                singleLine = true,
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
+            )
+
+            // Scrollable list
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 440.dp)
+            ) {
+                // "Add manually" row — shown when typed value doesn't match any item
+                if (typedNotInList) {
+                    item(key = "__custom__") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectAndClose(query.trim()) }
+                                .padding(horizontal = 20.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = query.trim(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = stringResource(R.string.add_car_picker_add_manually),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            thickness = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    }
+                }
+
+                items(filtered, key = { it }) { item ->
+                    val isSelected = item.equals(selectedItem, ignoreCase = true)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                else Color.Transparent
+                            )
+                            .clickable { selectAndClose(item) }
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = item,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
