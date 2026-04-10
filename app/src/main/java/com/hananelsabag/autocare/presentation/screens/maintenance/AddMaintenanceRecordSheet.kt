@@ -372,6 +372,15 @@ fun AddMaintenanceRecordSheet(
         // ── Description ───────────────────────────────────────────────
         SheetSectionHeader(stringResource(R.string.record_description))
 
+        Text(
+            text = stringResource(R.string.record_required_legend),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
+        )
+
         // Collapsible quick-suggestions section
         Surface(
             modifier = Modifier
@@ -491,7 +500,7 @@ fun AddMaintenanceRecordSheet(
                     }
                 }
             },
-            label = { Text(stringResource(R.string.record_description)) },
+            label = { Text(stringResource(R.string.record_description) + " *") },
             placeholder = {
                 Text(
                     text = descriptionPlaceholder,
@@ -540,7 +549,7 @@ fun AddMaintenanceRecordSheet(
                 label = {
                     Text(
                         if (type == RecordType.MAINTENANCE)
-                            stringResource(R.string.record_km)
+                            stringResource(R.string.record_km) + " *"
                         else
                             stringResource(R.string.record_km_optional)
                     )

@@ -379,9 +379,18 @@ fun AddCarSheetContent(
         // ── Required fields ──────────────────────────────────────────
         SectionHeader(stringResource(R.string.add_car_section_required))
 
+        Text(
+            text = stringResource(R.string.add_car_required_legend),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
+        )
+
         // Make picker field
         PickerField(
-            label = stringResource(R.string.add_car_make),
+            label = stringResource(R.string.add_car_make) + " *",
             value = viewModel.make.ifBlank { null },
             placeholder = stringResource(R.string.add_car_make_select),
             error = viewModel.makeError != null,
@@ -395,7 +404,7 @@ fun AddCarSheetContent(
 
         // Model picker field
         PickerField(
-            label = stringResource(R.string.add_car_model),
+            label = stringResource(R.string.add_car_model) + " *",
             value = viewModel.model.ifBlank { null },
             placeholder = if (viewModel.make.isBlank())
                 stringResource(R.string.add_car_picker_select_make_first)
@@ -508,7 +517,7 @@ fun AddCarSheetContent(
             CarFormField(
                 value = viewModel.year,
                 onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) viewModel.year = it },
-                label = stringResource(R.string.add_car_year),
+                label = stringResource(R.string.add_car_year) + " *",
                 error = viewModel.yearError,
                 keyboardType = KeyboardType.Number,
                 modifier = Modifier.weight(1f)
@@ -516,7 +525,7 @@ fun AddCarSheetContent(
             CarFormField(
                 value = viewModel.licensePlate,
                 onValueChange = { viewModel.licensePlate = it.filter { c -> c.isDigit() }.take(8) },
-                label = stringResource(R.string.add_car_license_plate),
+                label = stringResource(R.string.add_car_license_plate) + " *",
                 error = viewModel.licensePlateError,
                 keyboardType = KeyboardType.Number,
                 visualTransformation = LicensePlateVisualTransformation,

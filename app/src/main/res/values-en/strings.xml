@@ -57,6 +57,7 @@
     <string name="add_car_photo_subtitle">Optional</string>
     <string name="add_car_photo_tap_change">Tap to change photo</string>
     <string name="add_car_section_required">Required Details</string>
+    <string name="add_car_required_legend">* Required fields</string>
     <string name="add_car_section_optional">Optional Details</string>
     <string name="add_car_section_dates">Expiry Dates</string>
     <string name="add_car_make">Make</string>
@@ -202,6 +203,7 @@
     <string name="record_receipt_label">Receipt / Part Photo</string>
     <string name="record_receipt_add">Add receipt or part photo</string>
     <string name="add_record_save">Save Record</string>
+    <string name="record_required_legend">* Required fields</string>
     <string name="record_km_format">%s km</string>
     <string name="record_cost_format">₪%s</string>
 
@@ -431,8 +433,10 @@
     <!-- Image Crop Sheet -->
     <string name="image_crop_title">Frame Photo</string>
     <string name="image_crop_hint">Pinch to zoom · drag to reposition</string>
-    <string name="image_crop_confirm">Confirm</string>
+    <string name="image_crop_confirm">Use Photo</string>
     <string name="image_crop_saving">Saving…</string>
+    <string name="image_crop_reset">Reset view</string>
+    <string name="image_crop_zoom_level">%s×</string>
 
     <!-- Car colors (keys stored in DB; these are display names per language) -->
     <string name="color_white">White</string>
