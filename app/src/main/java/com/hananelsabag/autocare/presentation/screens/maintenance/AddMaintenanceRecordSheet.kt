@@ -6,11 +6,15 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +33,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.foundation.BorderStroke
@@ -52,8 +58,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -90,7 +95,7 @@ private fun createTempCameraUri(context: Context): Uri {
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddMaintenanceRecordSheet(
     carId: Int,
@@ -119,6 +124,13 @@ fun AddMaintenanceRecordSheet(
     var cameraReceiptUri by remember { mutableStateOf<Uri?>(null) }
     var descriptionError by remember { mutableStateOf(false) }
     var kmError by remember { mutableStateOf(false) }
+
+    // Multi-select quick suggestions state
+    var selectedChips by remember { mutableStateOf(emptySet<String>()) }
+    var chipsExpanded by remember { mutableStateOf(true) }
+
+    // When record type changes, reset chip selection (chips are type-specific)
+    LaunchedEffect(type) { selectedChips = emptySet() }
 
     val receiptPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -152,8 +164,6 @@ fun AddMaintenanceRecordSheet(
         }
     }
 
-    // Report dirty state to parent so it can decide whether to confirm dismiss.
-    // "Dirty" = user has typed anything (ignores type/date since those have defaults).
     val isDirty = description.isNotBlank() || km.isNotBlank() || cost.isNotBlank() ||
         notes.isNotBlank() || receiptUri != null
     LaunchedEffect(isDirty) { onDirtyChanged(isDirty) }
@@ -164,7 +174,7 @@ fun AddMaintenanceRecordSheet(
         return !descriptionError && !kmError
     }
 
-    // Quick chip lists per type — resolved here so stringResource works
+    // Quick chip lists per type
     val maintenanceChips = listOf(
         stringResource(R.string.chip_oil_change),
         stringResource(R.string.chip_routine_check),
@@ -209,24 +219,24 @@ fun AddMaintenanceRecordSheet(
         RecordType.UPGRADE -> stringResource(R.string.record_description_placeholder_upgrade)
     }
 
-    // Chip container / label colors match the selected record type accent
-    val chipContainerColor = when (type) {
+    // Accent colors per type
+    val accentColor = when (type) {
+        RecordType.MAINTENANCE -> MaterialTheme.colorScheme.primary
+        RecordType.REPAIR -> MaterialTheme.colorScheme.error
+        RecordType.WEAR -> MaterialTheme.colorScheme.tertiary
+        RecordType.UPGRADE -> MaterialTheme.colorScheme.secondary
+    }
+    val accentContainerColor = when (type) {
         RecordType.MAINTENANCE -> MaterialTheme.colorScheme.primaryContainer
         RecordType.REPAIR -> MaterialTheme.colorScheme.errorContainer
         RecordType.WEAR -> MaterialTheme.colorScheme.tertiaryContainer
         RecordType.UPGRADE -> MaterialTheme.colorScheme.secondaryContainer
     }
-    val chipLabelColor = when (type) {
+    val accentOnContainerColor = when (type) {
         RecordType.MAINTENANCE -> MaterialTheme.colorScheme.onPrimaryContainer
         RecordType.REPAIR -> MaterialTheme.colorScheme.onErrorContainer
         RecordType.WEAR -> MaterialTheme.colorScheme.onTertiaryContainer
         RecordType.UPGRADE -> MaterialTheme.colorScheme.onSecondaryContainer
-    }
-    val chipBorderColor = when (type) {
-        RecordType.MAINTENANCE -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-        RecordType.REPAIR -> MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
-        RecordType.WEAR -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
-        RecordType.UPGRADE -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
     }
 
     Column(
@@ -261,57 +271,73 @@ fun AddMaintenanceRecordSheet(
             }
         }
 
-        // ── Record type selector ─────────────────────────────────────
+        // ── Record type selector (2×2 grid) ──────────────────────────
         SheetSectionHeader(stringResource(R.string.record_type_label))
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            RecordType.entries.forEach { recordType ->
-                val accentColor = when (recordType) {
-                    RecordType.MAINTENANCE -> MaterialTheme.colorScheme.primary
-                    RecordType.REPAIR -> MaterialTheme.colorScheme.error
-                    RecordType.WEAR -> MaterialTheme.colorScheme.tertiary
-                    RecordType.UPGRADE -> MaterialTheme.colorScheme.secondary
-                }
-                val icon = when (recordType) {
-                    RecordType.MAINTENANCE -> Icons.Outlined.Build
-                    RecordType.REPAIR -> Icons.Outlined.CarRepair
-                    RecordType.WEAR -> Icons.Outlined.Autorenew
-                    RecordType.UPGRADE -> Icons.Outlined.Upgrade
-                }
-                FilterChip(
-                    selected = type == recordType,
-                    onClick = { type = recordType; kmError = false },
-                    label = {
-                        Text(
-                            text = stringResource(recordType.labelRes()),
-                            style = MaterialTheme.typography.labelSmall
+            RecordType.entries.chunked(2).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    row.forEach { recordType ->
+                        val rowAccentColor = when (recordType) {
+                            RecordType.MAINTENANCE -> MaterialTheme.colorScheme.primary
+                            RecordType.REPAIR -> MaterialTheme.colorScheme.error
+                            RecordType.WEAR -> MaterialTheme.colorScheme.tertiary
+                            RecordType.UPGRADE -> MaterialTheme.colorScheme.secondary
+                        }
+                        val icon = when (recordType) {
+                            RecordType.MAINTENANCE -> Icons.Outlined.Build
+                            RecordType.REPAIR -> Icons.Outlined.CarRepair
+                            RecordType.WEAR -> Icons.Outlined.Autorenew
+                            RecordType.UPGRADE -> Icons.Outlined.Upgrade
+                        }
+                        FilterChip(
+                            selected = type == recordType,
+                            onClick = { type = recordType; kmError = false },
+                            label = {
+                                Text(
+                                    text = stringResource(recordType.labelRes()),
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = rowAccentColor.copy(alpha = 0.15f),
+                                selectedLabelColor = rowAccentColor,
+                                selectedLeadingIconColor = rowAccentColor
+                            ),
+                            border = if (type == recordType)
+                                FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = true,
+                                    selectedBorderColor = rowAccentColor,
+                                    selectedBorderWidth = 1.5.dp
+                                )
+                            else
+                                FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = false
+                                ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp)
                         )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp)
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = accentColor.copy(alpha = 0.15f),
-                        selectedLabelColor = accentColor,
-                        selectedLeadingIconColor = accentColor
-                    ),
-                    border = if (type == recordType)
-                        FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = true,
-                            selectedBorderColor = accentColor,
-                            selectedBorderWidth = 1.5.dp
-                        ) else FilterChipDefaults.filterChipBorder(enabled = true, selected = false),
-                    modifier = Modifier.weight(1f)
-                )
+                    }
+                    // Pad the last row if it has an odd number of items
+                    if (row.size < 2) Spacer(modifier = Modifier.weight(1f))
+                }
             }
         }
 
@@ -346,40 +372,125 @@ fun AddMaintenanceRecordSheet(
         // ── Description ───────────────────────────────────────────────
         SheetSectionHeader(stringResource(R.string.record_description))
 
-        // Quick-select suggestion chips (type-aware, wrapping)
-        FlowRow(
+        // Collapsible quick-suggestions section
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            shape = MaterialTheme.shapes.medium,
+            color = accentContainerColor.copy(alpha = 0.25f),
+            tonalElevation = 0.dp
         ) {
-            quickChips.forEach { chip ->
-                SuggestionChip(
-                    onClick = {
-                        description = chip
-                        descriptionError = false
-                    },
-                    label = {
+            Column {
+                // Expandable header row — tap anywhere to toggle
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { chipsExpanded = !chipsExpanded }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.record_quick_suggestions_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = accentColor,
+                        modifier = Modifier.weight(1f)
+                    )
+                    // When collapsed and chips are selected, show a summary count/preview
+                    if (!chipsExpanded && selectedChips.isNotEmpty()) {
                         Text(
-                            text = chip,
-                            style = MaterialTheme.typography.labelMedium
+                            text = selectedChips.joinToString(", "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = accentOnContainerColor.copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .weight(2f)
+                                .padding(end = 6.dp),
+                            maxLines = 1
                         )
-                    },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = chipContainerColor.copy(alpha = 0.6f),
-                        labelColor = chipLabelColor
-                    ),
-                    border = BorderStroke(1.dp, chipBorderColor)
-                )
+                    }
+                    Icon(
+                        imageVector = if (chipsExpanded) Icons.Filled.KeyboardArrowUp
+                                      else Icons.Filled.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Chips — animate in/out
+                AnimatedVisibility(
+                    visible = chipsExpanded,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        quickChips.forEach { chip ->
+                            val isSelected = chip in selectedChips
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    val newSelection = if (isSelected) {
+                                        selectedChips - chip
+                                    } else {
+                                        selectedChips + chip
+                                    }
+                                    selectedChips = newSelection
+                                    description = newSelection.joinToString(", ")
+                                    descriptionError = false
+                                },
+                                label = {
+                                    Text(
+                                        text = chip,
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = accentContainerColor,
+                                    selectedLabelColor = accentOnContainerColor,
+                                    containerColor = accentContainerColor.copy(alpha = 0.3f),
+                                    labelColor = accentOnContainerColor.copy(alpha = 0.8f)
+                                ),
+                                border = if (isSelected)
+                                    FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = true,
+                                        selectedBorderColor = accentColor,
+                                        selectedBorderWidth = 1.5.dp
+                                    )
+                                else
+                                    FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = false,
+                                        borderColor = accentColor.copy(alpha = 0.3f)
+                                    )
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        // Description text field with dynamic placeholder + char counter
+        // Description text field
         val descriptionMaxLength = 200
         OutlinedTextField(
             value = description,
-            onValueChange = { if (it.length <= descriptionMaxLength) { description = it; descriptionError = false } },
+            onValueChange = { input ->
+                if (input.length <= descriptionMaxLength) {
+                    description = input
+                    descriptionError = false
+                    // Manual edit → decouple from chip selection
+                    if (input != selectedChips.joinToString(", ")) {
+                        selectedChips = emptySet()
+                    }
+                }
+            },
             label = { Text(stringResource(R.string.record_description)) },
             placeholder = {
                 Text(
@@ -450,7 +561,6 @@ fun AddMaintenanceRecordSheet(
             OutlinedTextField(
                 value = cost,
                 onValueChange = { input ->
-                    // Allow digits and at most one decimal point, max 8 chars total
                     val filtered = input.filter { it.isDigit() || it == '.' }
                     val dotCount = filtered.count { it == '.' }
                     if (dotCount <= 1 && filtered.length <= 8) cost = filtered
@@ -467,7 +577,7 @@ fun AddMaintenanceRecordSheet(
             )
         }
 
-        // ── Notes — with character counter ────────────────────────────
+        // ── Notes ─────────────────────────────────────────────────────
         val notesMaxLength = 300
         OutlinedTextField(
             value = notes,
@@ -494,7 +604,6 @@ fun AddMaintenanceRecordSheet(
         // ── Receipt photo ─────────────────────────────────────────────
         SheetSectionHeader(stringResource(R.string.record_receipt_label))
 
-        // Shared source-picker dropdown
         val receiptSourceDropdown: @Composable () -> Unit = {
             DropdownMenu(
                 expanded = showReceiptSourceMenu,
