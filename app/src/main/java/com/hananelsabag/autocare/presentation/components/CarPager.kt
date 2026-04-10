@@ -260,11 +260,12 @@ private fun CarPagerCard(car: Car, nextServiceDueMs: Long?, onClick: () -> Unit,
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // ── Hero photo (~44% of card) ─────────────────────────────
+            // ── Hero photo (fills all remaining space above details) ──
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.44f)
+                    .weight(1f)
+                    .background(Color.Black)
             ) {
                 if (car.photoUri != null) {
                     AsyncImage(
@@ -331,14 +332,13 @@ private fun CarPagerCard(car: Car, nextServiceDueMs: Long?, onClick: () -> Unit,
                 }
             }
 
-            // ── Details section (~56% of card) ────────────────────────
+            // ── Details section (wraps content — no fixed height) ─────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.56f)
                     .padding(horizontal = 20.dp)
                     .padding(top = 16.dp, bottom = 20.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // License plate + KM row
                 Row(
@@ -356,25 +356,30 @@ private fun CarPagerCard(car: Car, nextServiceDueMs: Long?, onClick: () -> Unit,
                     }
                 }
 
-                // ── Status progress bars ──────────────────────────────
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    car.testExpiryDate?.let { expiry ->
-                        StatusProgressRow(
-                            label = stringResource(R.string.car_pager_test_label),
-                            expiryMs = expiry
-                        )
-                    }
-                    car.insuranceExpiryDate?.let { expiry ->
-                        StatusProgressRow(
-                            label = stringResource(R.string.car_pager_insurance_label),
-                            expiryMs = expiry
-                        )
-                    }
-                    nextServiceDueMs?.let { expiry ->
-                        StatusProgressRow(
-                            label = stringResource(R.string.car_pager_service_label),
-                            expiryMs = expiry
-                        )
+                // ── Status progress bars (only if at least one exists) ──
+                val hasStatusData = car.testExpiryDate != null ||
+                    car.insuranceExpiryDate != null ||
+                    nextServiceDueMs != null
+                if (hasStatusData) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        car.testExpiryDate?.let { expiry ->
+                            StatusProgressRow(
+                                label = stringResource(R.string.car_pager_test_label),
+                                expiryMs = expiry
+                            )
+                        }
+                        car.insuranceExpiryDate?.let { expiry ->
+                            StatusProgressRow(
+                                label = stringResource(R.string.car_pager_insurance_label),
+                                expiryMs = expiry
+                            )
+                        }
+                        nextServiceDueMs?.let { expiry ->
+                            StatusProgressRow(
+                                label = stringResource(R.string.car_pager_service_label),
+                                expiryMs = expiry
+                            )
+                        }
                     }
                 }
             }
