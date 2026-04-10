@@ -35,10 +35,13 @@
     <string name="car_pager_today">היום</string>
     <string name="car_pager_not_set">לא הוגדר</string>
 
-    <!-- Car context menu (long press on pager card) -->
-    <string name="car_context_move_to_first">הזז לראשון</string>
-    <string name="car_context_move_to_last">הזז לאחרון</string>
-    <string name="car_context_delete">מחק רכב</string>
+    <!-- Car edit mode (long press enters reorder/delete mode) -->
+    <string name="car_edit_mode_title">עריכת סדר</string>
+    <string name="car_edit_mode_subtitle">החלק את החצים לשינוי סדר, X למחיקה</string>
+    <string name="car_edit_mode_done">סיום</string>
+    <string name="car_edit_move_left">הזז שמאלה</string>
+    <string name="car_edit_move_right">הזז ימינה</string>
+    <string name="car_edit_delete">מחק רכב</string>
     <string name="screen_reminders_title">תזכורות</string>
     <string name="screen_settings_title">הגדרות</string>
 
@@ -61,6 +64,11 @@
     <string name="add_car_model">דגם</string>
     <string name="add_car_model_hint">בחר או הקלד דגם</string>
     <string name="add_car_year">שנה</string>
+    <string name="add_car_year_quick_pick">בחר שנה במהירות</string>
+    <string name="add_car_picker_search_make">חפש יצרן</string>
+    <string name="add_car_picker_search_model">חפש דגם</string>
+    <string name="add_car_picker_select_make_first">קודם בחר יצרן</string>
+    <string name="add_car_picker_add_manually">הוסף ידנית</string>
     <string name="add_car_license_plate">לוחית רישוי</string>
     <string name="add_car_color">צבע (אופציונלי)</string>
     <string name="add_car_color_picker_label">בחר צבע</string>
@@ -291,9 +299,18 @@
     <string name="reminder_no_date_warning">תאריך לא מוגדר — הגדר בעריכת הרכב</string>
     <string name="reminder_no_service_records">אין טיפולים מתועדים עדיין</string>
     <!-- Schedule info and custom window -->
-    <string name="reminder_schedule_info">60, 30 ימים לפני · שבועי · פעמיים ביום בשבוע האחרון</string>
-    <string name="reminder_custom_window_prefix">התחל להזכיר</string>
-    <string name="reminder_custom_window_suffix">ימים לפני</string>
+    <!-- Reminder window options -->
+    <string name="reminder_window_early">60 יום</string>
+    <string name="reminder_window_medium">30 יום</string>
+    <string name="reminder_window_last_week">7 ימים</string>
+    <string name="reminder_window_early_desc">התראות ב-60, 30, 23, 16, 9 ימים לפני, ויומי ב-7 האחרונים</string>
+    <string name="reminder_window_medium_desc">התראות ב-30, 23, 16, 9 ימים לפני, ויומי ב-7 האחרונים</string>
+    <string name="reminder_window_last_week_desc">התראות יומיות ב-7 ימים האחרונים בלבד</string>
+    <string name="reminder_window_label">חלון התראה</string>
+    <string name="reminder_window_locked">7 ימים אחרונים תמיד פעיל</string>
+    <string name="reminder_schedule_fires">לוח זמנים:</string>
+    <string name="reminder_next_fire">ההתראה הבאה: %s</string>
+    <string name="reminder_next_fire_today">ההתראה הבאה: היום</string>
 
     <!-- Post-car-creation Reminder Prompt -->
     <string name="enable_reminders_prompt_title">הגדרת תזכורות</string>
@@ -354,6 +371,9 @@
     <string name="settings_notifications_active">פעיל ומחובר ✓</string>
     <string name="settings_notifications_disabled">כבויה</string>
     <string name="settings_notifications_enable">הפעל התראות</string>
+    <string name="settings_notifications_test">בדוק עכשיו</string>
+    <string name="settings_notifications_test_sent">נשלחה התראת בדיקה</string>
+    <string name="reminders_saved">הגדרות נשמרו</string>
     <string name="settings_section_export">ייצוא וייבוא</string>
     <string name="settings_export_pdf">ייצוא PDF</string>
     <string name="settings_export_pdf_desc">דוח מפורט ויפה עם לוגו ותמונות</string>

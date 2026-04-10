@@ -23,19 +23,22 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -50,7 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hananelsabag.autocare.R
@@ -134,7 +137,8 @@ fun CarRemindersContent(
                 isServiceType = type == ReminderType.SERVICE_DATE,
                 hasNoServiceRecords = type == ReminderType.SERVICE_DATE && lastMaintenanceDate == null,
                 onEnabledChange = { viewModel.updateEnabled(type, it) },
-                onDaysChange    = { viewModel.updateDays(type, it) }
+                onWindowChange  = { viewModel.updateWindow(type, it) },
+                nextFireMs = if (state.enabled) CarRemindersViewModel.nextFireDateMs(expiryMs, state.window) else null
             )
         }
 
@@ -165,7 +169,8 @@ private fun ReminderCard(
     isServiceType: Boolean,
     hasNoServiceRecords: Boolean,
     onEnabledChange: (Boolean) -> Unit,
-    onDaysChange: (String) -> Unit
+    onWindowChange: (ReminderWindow) -> Unit,
+    nextFireMs: Long?
 ) {
     val status = getStatusLevel(expiryMs)
     val daysLeft = expiryMs?.daysFromNow()
@@ -245,49 +250,103 @@ private fun ReminderCard(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Schedule info line
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Window label
+                    Text(
+                        text = stringResource(R.string.reminder_window_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 3 window chips
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        ReminderWindow.entries.forEach { window ->
+                            val label = stringResource(when (window) {
+                                ReminderWindow.EARLY     -> R.string.reminder_window_early
+                                ReminderWindow.MEDIUM    -> R.string.reminder_window_medium
+                                ReminderWindow.LAST_WEEK -> R.string.reminder_window_last_week
+                            })
+                            FilterChip(
+                                selected = state.window == window,
+                                onClick = { onWindowChange(window) },
+                                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                                modifier = Modifier.weight(1f),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Schedule description — what days will actually fire
+                    val scheduleDesc = when (state.window) {
+                        ReminderWindow.EARLY     -> stringResource(R.string.reminder_window_early_desc)
+                        ReminderWindow.MEDIUM    -> stringResource(R.string.reminder_window_medium_desc)
+                        ReminderWindow.LAST_WEEK -> stringResource(R.string.reminder_window_last_week_desc)
+                    }
+                    Row(verticalAlignment = Alignment.Top) {
                         Icon(
                             imageVector = Icons.Outlined.Schedule,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(14.dp).padding(top = 1.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = stringResource(R.string.reminder_schedule_info),
+                            text = scheduleDesc,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
-                    // Custom start-window field
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = stringResource(R.string.reminder_custom_window_prefix),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                    // Next fire date — concrete date based on expiry + window
+                    val nextFireLabel = when {
+                        nextFireMs == null -> null
+                        nextFireMs <= System.currentTimeMillis() + 86_400_000L ->
+                            stringResource(R.string.reminder_next_fire_today)
+                        else -> stringResource(R.string.reminder_next_fire, nextFireMs.toFormattedDate())
+                    }
+                    if (nextFireLabel != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Outlined.NotificationsActive,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = nextFireLabel,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
+
+                    // Locked last-7-days notice
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Outlined.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(12.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        OutlinedTextField(
-                            value = state.daysBeforeExpiry,
-                            onValueChange = onDaysChange,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.width(76.dp),
-                            shape = MaterialTheme.shapes.medium,
-                            textStyle = MaterialTheme.typography.bodyMedium
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = stringResource(R.string.reminder_custom_window_suffix),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = stringResource(R.string.reminder_window_locked),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

@@ -111,8 +111,9 @@ Real migrations covering v1→v7, v2→v7, ..., v6→v7 — data safe on reinsta
   - Missing date warning chip (amber) if date not set / no service records
   - Animated expand/collapse for schedule info + custom days-before field
   - Urgency border on card when status is yellow/red
-- `CarRemindersViewModel`: `formState` initialized once from DB, `lastMaintenanceDate` for SERVICE countdown, `updateEnabled()` / `updateDays()` / `saveReminders()`
+- `CarRemindersViewModel`: `formState` initialized once from DB, `lastMaintenanceDate` for SERVICE countdown, `updateEnabled()` / `updateWindow()` / `saveReminders()`. `nextFireDateMs(expiryMs, window)` computes exact date of next notification by mirroring worker logic.
 - `ReminderCheckWorker`: escalation schedule — 60d, 30d, weekly (23/16/9d), then every run ≤7d (≈twice daily). `SERVICE_DATE` = last MAINTENANCE + 365d. Stable notification IDs: `carId * 10 + type.ordinal`. 12-hour periodic interval.
+- **Reminder UX**: Chips show "60 יום / 30 יום / 7 ימים" (the start of the escalation window). Expanded section shows human-readable escalation description + "ההתראה הבאה: DD/MM/YYYY" calculated in real time. No free-text number input — user picks only from the 3 defined windows.
 
 ### Settings (`SettingsScreen`)
 - Theme: System / Light / Dark FilterChips (persisted via DataStore, survives app restart)
