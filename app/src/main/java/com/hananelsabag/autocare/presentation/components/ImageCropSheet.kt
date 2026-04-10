@@ -1,6 +1,7 @@
 package com.hananelsabag.autocare.presentation.components
 
 import android.net.Uri
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
@@ -15,9 +16,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -51,12 +53,9 @@ import com.hananelsabag.autocare.util.cropAndSaveImage
 import kotlinx.coroutines.launch
 
 /**
- * A bottom-sheet-style composable that lets the user pinch-zoom and drag
- * to frame their car photo. On confirm it crops and saves the result.
- *
- * @param uri       The source image URI (already has persistable permission)
- * @param onConfirm Called with the new cropped URI (or the original if crop fails)
- * @param onDismiss Called when the user taps Cancel
+ * Photo framing sheet — lets the user pinch-zoom and pan to compose their
+ * car photo. Viewport is 3:4 portrait (matches the card's photo area).
+ * Pan is clamped so no black ever leaks from the edges.
  */
 @Composable
 fun ImageCropSheet(
@@ -72,10 +71,16 @@ fun ImageCropSheet(
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     var isSaving by remember { mutableStateOf(false) }
 
+    // Transform handler — clamps pan so image always fills the viewport
     val transformState = rememberTransformableState { zoomChange, panChange, _ ->
-        val newScale = (userScale * zoomChange).coerceIn(1f, 4f)
+        val newScale = (userScale * zoomChange).coerceIn(1f, 5f)
+        val maxPanX = viewportSize.width * (newScale - 1) / 2f
+        val maxPanY = viewportSize.height * (newScale - 1) / 2f
         userScale = newScale
-        userOffset += panChange
+        userOffset = Offset(
+            x = (userOffset.x + panChange.x).coerceIn(-maxPanX, maxPanX),
+            y = (userOffset.y + panChange.y).coerceIn(-maxPanY, maxPanY)
+        )
     }
 
     Column(
@@ -83,78 +88,144 @@ fun ImageCropSheet(
             .fillMaxWidth()
             .navigationBarsPadding()
     ) {
-        // ── Header ──────────────────────────────────────────────────
-        Box(
+        // ── Header: Reset | Title | Close ───────────────────────────
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(R.string.image_crop_title),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.align(Alignment.Center)
-            )
             IconButton(
-                onClick = onDismiss,
-                modifier = Modifier.align(Alignment.CenterEnd)
+                onClick = { userScale = 1f; userOffset = Offset.Zero }
             ) {
                 Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = stringResource(R.string.image_crop_reset),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = stringResource(R.string.image_crop_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center
+            )
+            IconButton(onClick = onDismiss) {
+                Icon(
                     imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(R.string.btn_cancel)
+                    contentDescription = stringResource(R.string.btn_cancel),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        // ── Crop viewport ────────────────────────────────────────────
-        // 4:3 landscape viewport — matches usage in CarCard and hero
+        // ── Dark frame surround + crop viewport ─────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .aspectRatio(4f / 3f)
-                .clip(MaterialTheme.shapes.large)
-                .background(Color.Black)
-                .onSizeChanged { viewportSize = it }
+                .background(Color(0xFF111111))
+                .padding(vertical = 16.dp),
+            contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
-                model = uri,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
+            // 3:4 portrait viewport — matches the card photo area
+            Box(
                 modifier = Modifier
-                    .matchParentSize()
-                    .graphicsLayer {
-                        scaleX = userScale
-                        scaleY = userScale
-                        translationX = userOffset.x
-                        translationY = userOffset.y
-                    }
-                    .transformable(state = transformState)
-            )
+                    .fillMaxWidth()
+                    .padding(horizontal = 28.dp)
+                    .aspectRatio(3f / 4f)
+                    .clip(MaterialTheme.shapes.large)
+                    .background(Color.Black)
+                    .onSizeChanged { viewportSize = it }
+            ) {
+                // Photo with zoom/pan
+                AsyncImage(
+                    model = uri,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .matchParentSize()
+                        .graphicsLayer {
+                            scaleX = userScale
+                            scaleY = userScale
+                            translationX = userOffset.x
+                            translationY = userOffset.y
+                        }
+                        .transformable(state = transformState)
+                )
+
+                // Grid overlay: rule-of-thirds + corner brackets
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    val w = size.width
+                    val h = size.height
+
+                    // Rule-of-thirds grid lines (subtle)
+                    val gridColor = Color.White.copy(alpha = 0.2f)
+                    val gridStroke = 1.dp.toPx()
+                    drawLine(gridColor, Offset(w / 3f, 0f), Offset(w / 3f, h), gridStroke)
+                    drawLine(gridColor, Offset(2 * w / 3f, 0f), Offset(2 * w / 3f, h), gridStroke)
+                    drawLine(gridColor, Offset(0f, h / 3f), Offset(w, h / 3f), gridStroke)
+                    drawLine(gridColor, Offset(0f, 2 * h / 3f), Offset(w, 2 * h / 3f), gridStroke)
+
+                    // Corner L-brackets (crisp white framing indicators)
+                    val cornerLen = 28.dp.toPx()
+                    val cornerStroke = 3.dp.toPx()
+                    val cornerColor = Color.White.copy(alpha = 0.9f)
+                    val cap = StrokeCap.Square
+
+                    // Top-left
+                    drawLine(cornerColor, Offset(0f, 0f), Offset(cornerLen, 0f), cornerStroke, cap)
+                    drawLine(cornerColor, Offset(0f, 0f), Offset(0f, cornerLen), cornerStroke, cap)
+                    // Top-right
+                    drawLine(cornerColor, Offset(w, 0f), Offset(w - cornerLen, 0f), cornerStroke, cap)
+                    drawLine(cornerColor, Offset(w, 0f), Offset(w, cornerLen), cornerStroke, cap)
+                    // Bottom-left
+                    drawLine(cornerColor, Offset(0f, h), Offset(cornerLen, h), cornerStroke, cap)
+                    drawLine(cornerColor, Offset(0f, h), Offset(0f, h - cornerLen), cornerStroke, cap)
+                    // Bottom-right
+                    drawLine(cornerColor, Offset(w, h), Offset(w - cornerLen, h), cornerStroke, cap)
+                    drawLine(cornerColor, Offset(w, h), Offset(w, h - cornerLen), cornerStroke, cap)
+                }
+            }
         }
 
-        // ── Hint ─────────────────────────────────────────────────────
+        // ── Zoom indicator ───────────────────────────────────────────
         Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = stringResource(R.string.image_crop_zoom_level, "%.1f".format(userScale)),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // ── Hint ─────────────────────────────────────────────────────
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = stringResource(R.string.image_crop_hint),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 24.dp)
         )
 
         // ── Buttons ──────────────────────────────────────────────────
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedButton(
                 onClick = onDismiss,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = MaterialTheme.shapes.large
             ) {
                 Text(stringResource(R.string.btn_cancel))
             }
@@ -171,7 +242,7 @@ fun ImageCropSheet(
                                 viewportPxH = viewportSize.height,
                                 userScale = userScale,
                                 userOffset = userOffset
-                            ) ?: uri // fall back to original if crop fails
+                            ) ?: uri
                         } else {
                             uri
                         }
@@ -179,7 +250,10 @@ fun ImageCropSheet(
                     }
                 },
                 enabled = !isSaving,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = MaterialTheme.shapes.large
             ) {
                 Text(
                     text = if (isSaving)
