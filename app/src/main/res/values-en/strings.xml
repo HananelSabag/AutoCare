@@ -35,10 +35,13 @@
     <string name="car_pager_today">Today</string>
     <string name="car_pager_not_set">Not set</string>
 
-    <!-- Car context menu (long press on pager card) -->
-    <string name="car_context_move_to_first">Move to First</string>
-    <string name="car_context_move_to_last">Move to Last</string>
-    <string name="car_context_delete">Delete Car</string>
+    <!-- Car edit mode (long press enters reorder/delete mode) -->
+    <string name="car_edit_mode_title">Edit Order</string>
+    <string name="car_edit_mode_subtitle">Use arrows to reorder, X to delete</string>
+    <string name="car_edit_mode_done">Done</string>
+    <string name="car_edit_move_left">Move left</string>
+    <string name="car_edit_move_right">Move right</string>
+    <string name="car_edit_delete">Delete car</string>
     <string name="screen_reminders_title">Reminders</string>
     <string name="screen_settings_title">Settings</string>
 
@@ -61,6 +64,11 @@
     <string name="add_car_model">Model</string>
     <string name="add_car_model_hint">Select or type model</string>
     <string name="add_car_year">Year</string>
+    <string name="add_car_year_quick_pick">Quick Year Select</string>
+    <string name="add_car_picker_search_make">Search make</string>
+    <string name="add_car_picker_search_model">Search model</string>
+    <string name="add_car_picker_select_make_first">Select make first</string>
+    <string name="add_car_picker_add_manually">Add manually</string>
     <string name="add_car_license_plate">License Plate</string>
     <string name="add_car_color">Color (optional)</string>
     <string name="add_car_color_picker_label">Select Color</string>
@@ -285,9 +293,18 @@
     <string name="reminder_no_date_warning">Date not set — edit car to add it</string>
     <string name="reminder_no_service_records">No service records yet</string>
     <!-- Schedule info and custom window -->
-    <string name="reminder_schedule_info">Alerts at 60, 30 days before · weekly · twice daily in last week</string>
-    <string name="reminder_custom_window_prefix">Start reminding</string>
-    <string name="reminder_custom_window_suffix">days before</string>
+    <!-- Reminder window options -->
+    <string name="reminder_window_early">60 days</string>
+    <string name="reminder_window_medium">30 days</string>
+    <string name="reminder_window_last_week">7 days</string>
+    <string name="reminder_window_early_desc">Alerts at 60, 30, 23, 16, 9 days before, then daily in last 7</string>
+    <string name="reminder_window_medium_desc">Alerts at 30, 23, 16, 9 days before, then daily in last 7</string>
+    <string name="reminder_window_last_week_desc">Daily alerts in the last 7 days only</string>
+    <string name="reminder_window_label">Alert window</string>
+    <string name="reminder_window_locked">Last 7 days always active</string>
+    <string name="reminder_schedule_fires">Schedule:</string>
+    <string name="reminder_next_fire">Next alert: %s</string>
+    <string name="reminder_next_fire_today">Next alert: Today</string>
 
     <!-- Post-car-creation Reminder Prompt -->
     <string name="enable_reminders_prompt_title">Set Up Reminders</string>
@@ -348,6 +365,9 @@
     <string name="settings_notifications_active">Active and connected ✓</string>
     <string name="settings_notifications_disabled">Disabled</string>
     <string name="settings_notifications_enable">Enable Notifications</string>
+    <string name="settings_notifications_test">Test Now</string>
+    <string name="settings_notifications_test_sent">Test notification sent</string>
+    <string name="reminders_saved">Settings saved</string>
     <string name="settings_section_export">Export Data</string>
     <string name="settings_export_pdf">PDF</string>
     <string name="settings_export_pdf_desc">Export detailed report with photos</string>

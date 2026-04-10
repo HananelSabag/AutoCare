@@ -18,12 +18,28 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.hananelsabag.autocare.notifications.ReminderCheckWorker
+import com.hananelsabag.autocare.util.daysFromNow
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
+enum class ReminderWindow(val days: Int) {
+    EARLY(60),
+    MEDIUM(30),
+    LAST_WEEK(7);
+
+    companion object {
+        fun fromDays(days: Int): ReminderWindow = when {
+            days >= 60 -> EARLY
+            days >= 30 -> MEDIUM
+            else       -> LAST_WEEK
+        }
+    }
+}
+
 data class ReminderUiState(
     val enabled: Boolean,
-    val daysBeforeExpiry: String
+    val window: ReminderWindow
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -48,9 +64,9 @@ class CarRemindersViewModel @Inject constructor(
     // Mutable form state — initialized once from DB, then owned by the UI until Save.
     // Lives in the ViewModel so it survives recomposition and DB flow re-emissions.
     private val _formState = MutableStateFlow(
-        // Sensible defaults while loading (TEST_EXPIRY on, others off, 60d window)
+        // Sensible defaults while loading (TEST_EXPIRY on, others off, EARLY window)
         ReminderType.entries.associateWith { type ->
-            ReminderUiState(enabled = type == ReminderType.TEST_EXPIRY, daysBeforeExpiry = "60")
+            ReminderUiState(enabled = type == ReminderType.TEST_EXPIRY, window = ReminderWindow.EARLY)
         }
     )
     val formState = _formState
@@ -84,7 +100,7 @@ class CarRemindersViewModel @Inject constructor(
                     val existing = saved.find { it.type == type }
                     ReminderUiState(
                         enabled = existing?.enabled ?: (type == ReminderType.TEST_EXPIRY),
-                        daysBeforeExpiry = (existing?.daysBeforeExpiry ?: 60).toString()
+                        window = ReminderWindow.fromDays(existing?.daysBeforeExpiry ?: 60)
                     )
                 }
             }
@@ -96,16 +112,15 @@ class CarRemindersViewModel @Inject constructor(
     fun updateEnabled(type: ReminderType, enabled: Boolean) {
         _formState.update { current ->
             current.toMutableMap().also {
-                it[type] = (it[type] ?: ReminderUiState(false, "60")).copy(enabled = enabled)
+                it[type] = (it[type] ?: ReminderUiState(false, ReminderWindow.EARLY)).copy(enabled = enabled)
             }
         }
     }
 
-    fun updateDays(type: ReminderType, days: String) {
-        val sanitized = days.filter { it.isDigit() }.take(3)
+    fun updateWindow(type: ReminderType, window: ReminderWindow) {
         _formState.update { current ->
             current.toMutableMap().also {
-                it[type] = (it[type] ?: ReminderUiState(false, "60")).copy(daysBeforeExpiry = sanitized)
+                it[type] = (it[type] ?: ReminderUiState(false, ReminderWindow.EARLY)).copy(window = window)
             }
         }
     }
@@ -118,7 +133,7 @@ class CarRemindersViewModel @Inject constructor(
                     carId = carId,
                     type = type,
                     enabled = state.enabled,
-                    daysBeforeExpiry = state.daysBeforeExpiry.toIntOrNull()?.coerceIn(1, 365) ?: 60
+                    daysBeforeExpiry = state.window.days
                 )
             }
             reminderRepository.deleteAllForCar(carId)
@@ -141,25 +156,45 @@ class CarRemindersViewModel @Inject constructor(
         fun serviceDueDate(lastMaintenanceDate: Long?): Long? =
             lastMaintenanceDate?.plus(ONE_YEAR_MS)
 
+        /**
+         * Returns the epoch-millis of the next scheduled notification for this window + expiry.
+         * Mirrors [ReminderCheckWorker.shouldFireToday] logic exactly.
+         * Returns null if expiry is unknown or already past.
+         * Returns [System.currentTimeMillis] if a notification would fire at the next worker run.
+         */
+        fun nextFireDateMs(expiryMs: Long?, window: ReminderWindow): Long? {
+            if (expiryMs == null) return null
+            val daysLeft = expiryMs.daysFromNow()
+            if (daysLeft < 0) return null
+            // Scan from today downward to find the next day that would trigger
+            for (d in daysLeft downTo 0L) {
+                if (ReminderCheckWorker.shouldFireToday(d, window.days)) {
+                    val daysUntilFire = daysLeft - d
+                    return System.currentTimeMillis() + TimeUnit.DAYS.toMillis(daysUntilFire)
+                }
+            }
+            return null
+        }
+
         fun buildDefaultReminders(car: Car): List<Reminder> =
             listOf(
                 Reminder(
                     carId = car.id,
                     type = ReminderType.TEST_EXPIRY,
                     enabled = true,
-                    daysBeforeExpiry = 60
+                    daysBeforeExpiry = ReminderWindow.EARLY.days
                 ),
                 Reminder(
                     carId = car.id,
                     type = ReminderType.INSURANCE_EXPIRY,
                     enabled = car.insuranceExpiryDate != null,
-                    daysBeforeExpiry = 60
+                    daysBeforeExpiry = ReminderWindow.EARLY.days
                 ),
                 Reminder(
                     carId = car.id,
                     type = ReminderType.SERVICE_DATE,
                     enabled = true,
-                    daysBeforeExpiry = 60
+                    daysBeforeExpiry = ReminderWindow.EARLY.days
                 )
             )
     }
