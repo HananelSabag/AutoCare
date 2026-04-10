@@ -20,19 +20,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    signingConfigs {
-        create("release") {
-            storeFile = rootProject.file("autocare-release.jks")
-            storePassword = "autocare123"
-            keyAlias = "autocare"
-            keyPassword = "autocare123"
-        }
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
