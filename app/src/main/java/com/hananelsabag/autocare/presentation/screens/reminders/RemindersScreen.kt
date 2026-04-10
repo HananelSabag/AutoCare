@@ -59,6 +59,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.data.local.entities.Car
 
@@ -71,6 +75,9 @@ fun RemindersScreen(onCarClick: (Int) -> Unit) {
     val cars by dashViewModel.cars.collectAsState()
 
     var selectedCarId by remember { mutableIntStateOf(-1) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val savedMsg = stringResource(R.string.reminders_saved)
 
     LaunchedEffect(cars) {
         if (selectedCarId == -1 && cars.isNotEmpty()) {
@@ -82,6 +89,7 @@ fun RemindersScreen(onCarClick: (Int) -> Unit) {
         topBar = {
             TopAppBar(title = { Text(stringResource(R.string.reminders_dashboard_title)) })
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0)
     ) { paddingValues ->
         if (cars.isEmpty()) {
@@ -110,7 +118,7 @@ fun RemindersScreen(onCarClick: (Int) -> Unit) {
 
                     CarRemindersContent(
                         viewModel = remindersVm,
-                        onSaved = {}
+                        onSaved = { scope.launch { snackbarHostState.showSnackbar(savedMsg) } }
                     )
                 }
             }

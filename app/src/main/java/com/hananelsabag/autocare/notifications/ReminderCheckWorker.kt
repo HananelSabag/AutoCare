@@ -28,22 +28,23 @@ class ReminderCheckWorker @AssistedInject constructor(
         private val ONE_YEAR_MS = TimeUnit.DAYS.toMillis(365)
 
         /**
-         * Escalation schedule:
-         *  - daysLeft == 60                 → fire (first early warning)
-         *  - daysLeft == 30                 → fire (one-month warning)
-         *  - daysLeft in 8..29, every 7d   → fire (weekly: 23, 16, 9)
-         *  - daysLeft in 0..7              → fire every run (~twice daily with 12h worker)
+         * Three window tiers — last 7 days always fires regardless of tier:
          *
-         * The user's [daysBeforeExpiry] acts as the outermost gate:
-         * if daysLeft > daysBeforeExpiry the event is not yet in the user's window.
+         *  EARLY (daysBeforeExpiry = 60):  fires at 60, 30, 23, 16, 9, then every run ≤7
+         *  MEDIUM (daysBeforeExpiry = 30): fires at 30, 23, 16, 9, then every run ≤7
+         *  LAST_WEEK (daysBeforeExpiry = 7): fires every run ≤7 only
+         *
+         * The last 7 days are always active — cannot be disabled.
          */
         fun shouldFireToday(daysLeft: Long, daysBeforeExpiry: Int): Boolean {
             if (daysLeft < 0) return false
+            // Last 7 days always fire, regardless of window setting
+            if (daysLeft <= 7L) return true
+            // Outside the user's window — skip
             if (daysLeft > daysBeforeExpiry) return false
             return when {
-                daysLeft <= 7L -> true
+                daysLeft == 60L -> true
                 daysLeft == 30L -> true
-                daysLeft == 60L && daysBeforeExpiry >= 60 -> true
                 daysLeft in 8L..29L && (30L - daysLeft) % 7L == 0L -> true
                 else -> false
             }

@@ -70,7 +70,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -102,6 +104,7 @@ fun SettingsScreen() {
     val language by viewModel.language.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     val cars by exportViewModel.cars.collectAsState()
     val exportState by exportViewModel.uiState.collectAsState()
@@ -134,6 +137,7 @@ fun SettingsScreen() {
     val importSuccessFmt = stringResource(R.string.import_success)
     val importErrorMsg  = stringResource(R.string.import_error)
     val exportErrorMsg  = stringResource(R.string.export_error)
+    val notifTestSentMsg = stringResource(R.string.settings_notifications_test_sent)
 
     LaunchedEffect(exportViewModel) {
         exportViewModel.events.collect { event ->
@@ -256,7 +260,17 @@ fun SettingsScreen() {
                         MaterialTheme.colorScheme.error
                 ) {
                     if (notificationsGranted) {
-                        NotificationsActiveRow()
+                        NotificationsActiveRow(
+                            onTestNow = {
+                                com.hananelsabag.autocare.notifications.showReminderNotification(
+                                    context = context,
+                                    notificationId = 9999,
+                                    title = context.getString(R.string.app_name),
+                                    message = context.getString(R.string.settings_notifications_test_sent)
+                                )
+                                scope.launch { snackbarHostState.showSnackbar(notifTestSentMsg) }
+                            }
+                        )
                     } else {
                         NotificationsDisabledRow(
                             onEnable = {
@@ -531,34 +545,59 @@ private fun <T> PillSelectorRow(
 // ── Notifications rows ────────────────────────────────────────────────────────
 
 @Composable
-private fun NotificationsActiveRow() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Alarm,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(
-            text = stringResource(R.string.settings_notifications_label),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f)
-        )
-        Surface(
-            color = MaterialTheme.colorScheme.primaryContainer,
-            shape = RoundedCornerShape(20.dp)
+private fun NotificationsActiveRow(onTestNow: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Icon(
+                imageVector = Icons.Outlined.Alarm,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = stringResource(R.string.settings_notifications_active),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                text = stringResource(R.string.settings_notifications_label),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_notifications_active),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                )
+            }
+        }
+        Button(
+            onClick = onTestNow,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.NotificationsActive,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = stringResource(R.string.settings_notifications_test),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
