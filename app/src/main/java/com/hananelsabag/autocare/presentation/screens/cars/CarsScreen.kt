@@ -3,13 +3,13 @@ package com.hananelsabag.autocare.presentation.screens.cars
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,9 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
-import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.DirectionsCar
@@ -32,9 +30,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -86,14 +83,29 @@ fun CarsScreen(
     var showAddSheet by remember { mutableStateOf(false) }
     var showDiscardConfirm by remember { mutableStateOf(false) }
     var reminderPromptCar by remember { mutableStateOf<Car?>(null) }
+
+    // Hoisted so the discard dialog can call addCarSheetState.expand() on "continue editing"
+    val addCarSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { newValue ->
+            if (newValue == SheetValue.Hidden && addCarViewModel.hasUnsavedData()) {
+                showDiscardConfirm = true
+                false
+            } else {
+                true
+            }
+        }
+    )
     var showNotifRationale by remember { mutableStateOf(false) }
-    var contextMenuCar by remember { mutableStateOf<Car?>(null) }
+    var isEditMode by remember { mutableStateOf(false) }
     var carToDelete by remember { mutableStateOf<Car?>(null) }
     var scrollToCarId by remember { mutableStateOf<Int?>(null) }
     val pagerState = rememberCarPagerState(cars.size)
 
-    // Scroll to the reordered car once cars list has updated to reflect the new order.
-    // Keyed on both scrollToCarId and cars so it fires again after the DB update arrives.
+    // Exit edit mode on back press
+    BackHandler(enabled = isEditMode) { isEditMode = false }
+
+    // Scroll to a car after reorder — fires when scrollToCarId or cars changes
     LaunchedEffect(scrollToCarId, cars) {
         val id = scrollToCarId ?: return@LaunchedEffect
         val idx = cars.indexOfFirst { it.id == id }
@@ -103,7 +115,7 @@ fun CarsScreen(
     // Notification permission launcher
     val notifLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { /* handled by system — no extra action needed */ }
+    ) { /* handled by system */ }
 
     // On first launch, ask for notification permission once (API 33+)
     LaunchedEffect(Unit) {
@@ -111,16 +123,11 @@ fun CarsScreen(
             val granted = ContextCompat.checkSelfPermission(
                 context, Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
-            if (!granted) {
-                showNotifRationale = true
-            }
+            if (!granted) showNotifRationale = true
         }
     }
 
-    // When a new car is saved, find it and offer reminder setup.
-    // Keyed on BOTH lastSavedCarId and cars so that if the Room Flow hasn't
-    // emitted the new car yet when lastSavedCarId fires, this effect re-runs
-    // once cars updates and correctly finds the car on the next attempt.
+    // When a new car is saved, find it and offer reminder setup
     LaunchedEffect(lastSavedCarId, cars) {
         val id = lastSavedCarId ?: return@LaunchedEffect
         val car = cars.find { it.id == id }
@@ -136,11 +143,14 @@ fun CarsScreen(
                 title = {
                     Column {
                         Text(
-                            text = stringResource(R.string.screen_cars_title),
+                            text = if (isEditMode)
+                                stringResource(R.string.car_edit_mode_title)
+                            else
+                                stringResource(R.string.screen_cars_title),
                             style = MaterialTheme.typography.titleLarge
                         )
                         AnimatedVisibility(
-                            visible = cars.isNotEmpty(),
+                            visible = cars.isNotEmpty() && !isEditMode,
                             enter = fadeIn(),
                             exit = fadeOut()
                         ) {
@@ -151,6 +161,27 @@ fun CarsScreen(
                                     stringResource(R.string.screen_cars_subtitle_plural, cars.size),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        AnimatedVisibility(
+                            visible = isEditMode,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            Text(
+                                text = stringResource(R.string.car_edit_mode_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    if (isEditMode) {
+                        IconButton(onClick = { isEditMode = false }) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = stringResource(R.string.car_edit_mode_done)
                             )
                         }
                     }
@@ -170,7 +201,17 @@ fun CarsScreen(
                 nextServiceDueMsByCarId = nextServiceDueMsByCarId,
                 onCarClick = onCarClick,
                 onAddCar = { showAddSheet = true },
-                onCarLongPress = { car -> contextMenuCar = car },
+                onCarLongPress = { isEditMode = true },
+                isEditMode = isEditMode,
+                onMoveLeft = { car ->
+                    carsViewModel.moveLeft(car)
+                    scrollToCarId = car.id
+                },
+                onMoveRight = { car ->
+                    carsViewModel.moveRight(car)
+                    scrollToCarId = car.id
+                },
+                onDeleteRequest = { car -> carToDelete = car },
                 pagerState = pagerState,
                 modifier = Modifier.padding(paddingValues)
             )
@@ -239,41 +280,26 @@ fun CarsScreen(
     }
 
     // ── Add Car Sheet ────────────────────────────────────────────
+    fun closeAddSheet() {
+        addCarViewModel.resetForm()
+        showAddSheet = false
+    }
+
     if (showAddSheet) {
-        // confirmValueChange blocks the sheet from hiding when the user has
-        // unsaved data — the dialog then lets them choose to discard or continue.
-        val sheetState = rememberModalBottomSheetState(
-            skipPartiallyExpanded = true,
-            confirmValueChange = { newValue ->
-                if (newValue == SheetValue.Hidden && addCarViewModel.hasUnsavedData()) {
-                    showDiscardConfirm = true
-                    false  // keep the sheet open
-                } else {
-                    true
-                }
-            }
-        )
         ModalBottomSheet(
             onDismissRequest = {
-                // Fires on back-press / tap-outside even when confirmValueChange
-                // returned false. Only close if there's nothing to lose.
-                if (!addCarViewModel.hasUnsavedData()) {
-                    addCarViewModel.resetForm()
-                    showAddSheet = false
-                }
-                // If dirty: confirmValueChange already showed the dialog; do nothing here.
+                if (!addCarViewModel.hasUnsavedData()) closeAddSheet()
+                // If dirty: confirmValueChange showed the dialog; sheet stays open.
             },
-            sheetState = sheetState
+            sheetState = addCarSheetState
         ) {
             AddCarSheetContent(
                 viewModel = addCarViewModel,
-                onSaved = {
-                    addCarViewModel.resetForm()
-                    showAddSheet = false
-                },
+                onSaved = { closeAddSheet() },
                 onCancel = {
-                    addCarViewModel.resetForm()
-                    showAddSheet = false
+                    // X button: respect dirty state same as swipe-down
+                    if (addCarViewModel.hasUnsavedData()) showDiscardConfirm = true
+                    else closeAddSheet()
                 }
             )
         }
@@ -282,20 +308,29 @@ fun CarsScreen(
     // ── Discard confirmation ─────────────────────────────────────
     if (showDiscardConfirm) {
         AlertDialog(
-            onDismissRequest = { showDiscardConfirm = false },
+            onDismissRequest = {
+                // Tapping outside = "continue editing"
+                showDiscardConfirm = false
+                scope.launch { addCarSheetState.expand() }
+            },
             title = { Text(stringResource(R.string.add_car_discard_title)) },
             text = { Text(stringResource(R.string.add_car_discard_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDiscardConfirm = false
-                    addCarViewModel.resetForm()
-                    showAddSheet = false
+                    closeAddSheet()
                 }) {
-                    Text(stringResource(R.string.add_car_discard_confirm))
+                    Text(
+                        stringResource(R.string.add_car_discard_confirm),
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDiscardConfirm = false }) {
+                TextButton(onClick = {
+                    showDiscardConfirm = false
+                    scope.launch { addCarSheetState.expand() }
+                }) {
                     Text(stringResource(R.string.add_car_discard_cancel))
                 }
             }
@@ -321,37 +356,6 @@ fun CarsScreen(
         }
     }
 
-    // ── Car context menu (long press) ────────────────────────────
-    contextMenuCar?.let { car ->
-        val isFirst = cars.firstOrNull()?.id == car.id
-        val isLast = cars.lastOrNull()?.id == car.id
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(
-            onDismissRequest = { contextMenuCar = null },
-            sheetState = sheetState
-        ) {
-            CarContextMenuSheet(
-                car = car,
-                isFirst = isFirst,
-                isLast = isLast,
-                onMoveToFirst = {
-                    carsViewModel.moveToFirst(car)
-                    scrollToCarId = car.id
-                    contextMenuCar = null
-                },
-                onMoveToLast = {
-                    carsViewModel.moveToLast(car)
-                    scrollToCarId = car.id
-                    contextMenuCar = null
-                },
-                onDelete = {
-                    contextMenuCar = null
-                    carToDelete = car
-                }
-            )
-        }
-    }
-
     // ── Delete car confirmation ──────────────────────────────────
     carToDelete?.let { car ->
         AlertDialog(
@@ -362,6 +366,8 @@ fun CarsScreen(
                 TextButton(onClick = {
                     carsViewModel.deleteCar(car)
                     carToDelete = null
+                    // If we deleted the last car, exit edit mode
+                    if (cars.size <= 1) isEditMode = false
                 }) {
                     Text(
                         text = stringResource(R.string.car_profile_delete_confirm_yes),
@@ -379,96 +385,12 @@ fun CarsScreen(
 }
 
 @Composable
-private fun CarContextMenuSheet(
-    car: Car,
-    isFirst: Boolean,
-    isLast: Boolean,
-    onMoveToFirst: () -> Unit,
-    onMoveToLast: () -> Unit,
-    onDelete: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(bottom = 8.dp)
-    ) {
-        Text(
-            text = "${car.make} ${car.model}",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        HorizontalDivider()
-
-        ListItem(
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.car_context_move_to_first),
-                    color = if (isFirst) MaterialTheme.colorScheme.outline
-                            else MaterialTheme.colorScheme.onSurface
-                )
-            },
-            leadingContent = {
-                Icon(
-                    imageVector = Icons.Filled.KeyboardDoubleArrowUp,
-                    contentDescription = null,
-                    tint = if (isFirst) MaterialTheme.colorScheme.outline
-                           else MaterialTheme.colorScheme.onSurface
-                )
-            },
-            modifier = Modifier.clickable(enabled = !isFirst, onClick = onMoveToFirst)
-        )
-
-        ListItem(
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.car_context_move_to_last),
-                    color = if (isLast) MaterialTheme.colorScheme.outline
-                            else MaterialTheme.colorScheme.onSurface
-                )
-            },
-            leadingContent = {
-                Icon(
-                    imageVector = Icons.Filled.KeyboardDoubleArrowDown,
-                    contentDescription = null,
-                    tint = if (isLast) MaterialTheme.colorScheme.outline
-                           else MaterialTheme.colorScheme.onSurface
-                )
-            },
-            modifier = Modifier.clickable(enabled = !isLast, onClick = onMoveToLast)
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-        ListItem(
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.car_context_delete),
-                    color = MaterialTheme.colorScheme.error
-                )
-            },
-            leadingContent = {
-                Icon(
-                    imageVector = Icons.Filled.Delete,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error
-                )
-            },
-            modifier = Modifier.clickable(onClick = onDelete)
-        )
-    }
-}
-
-@Composable
 private fun ReminderPromptSheet(
     car: Car,
-    onEnableDefaults: () -> Unit,  // enable but don't close
-    onDone: () -> Unit,            // close the sheet
-    onAddService: () -> Unit       // close + navigate to add service
+    onEnableDefaults: () -> Unit,
+    onDone: () -> Unit,
+    onAddService: () -> Unit
 ) {
-    // step 0 = reminders, step 1 = service
     var step by remember { mutableStateOf(0) }
 
     Column(
@@ -479,7 +401,6 @@ private fun ReminderPromptSheet(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (step == 0) {
-            // ── Step 1: Reminders ──────────────────────────────────
             Icon(
                 imageVector = Icons.Filled.Notifications,
                 contentDescription = null,
@@ -533,7 +454,6 @@ private fun ReminderPromptSheet(
                 )
             }
         } else {
-            // ── Step 2: Add service ────────────────────────────────
             Icon(
                 imageVector = Icons.Outlined.Build,
                 contentDescription = null,
@@ -593,9 +513,7 @@ private fun CarsEmptyState(
             Box(
                 modifier = Modifier
                     .size(120.dp)
-                    .then(
-                        Modifier.padding(8.dp)
-                    ),
+                    .then(Modifier.padding(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

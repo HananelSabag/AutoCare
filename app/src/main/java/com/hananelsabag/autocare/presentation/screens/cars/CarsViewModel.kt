@@ -6,6 +6,7 @@ import com.hananelsabag.autocare.data.local.entities.Car
 import com.hananelsabag.autocare.domain.repository.CarRepository
 import com.hananelsabag.autocare.domain.repository.MaintenanceRecordRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -27,6 +28,7 @@ class CarsViewModel @Inject constructor(
         )
 
     // carId → next service due timestamp (last MAINTENANCE date + 365 days)
+    @OptIn(ExperimentalCoroutinesApi::class)
     val nextServiceDueMsByCarId = cars
         .flatMapLatest { carList ->
             flow {
@@ -47,14 +49,18 @@ class CarsViewModel @Inject constructor(
         viewModelScope.launch { repository.deleteCar(car) }
     }
 
-    fun moveToFirst(car: Car) = applyReorder(car) { list, idx ->
-        list.removeAt(idx)
-        list.add(0, car)
+    fun moveLeft(car: Car) = applyReorder(car) { list, idx ->
+        if (idx > 0) {
+            list.removeAt(idx)
+            list.add(idx - 1, car)
+        }
     }
 
-    fun moveToLast(car: Car) = applyReorder(car) { list, idx ->
-        list.removeAt(idx)
-        list.add(car)
+    fun moveRight(car: Car) = applyReorder(car) { list, idx ->
+        if (idx < list.lastIndex) {
+            list.removeAt(idx)
+            list.add(idx + 1, car)
+        }
     }
 
     private fun applyReorder(car: Car, transform: (MutableList<Car>, Int) -> Unit) {

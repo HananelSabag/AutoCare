@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,11 +25,15 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -70,15 +76,19 @@ fun CarPager(
     onCarClick: (Int) -> Unit,
     onAddCar: () -> Unit,
     onCarLongPress: (Car) -> Unit,
+    isEditMode: Boolean = false,
+    onMoveLeft: (Car) -> Unit = {},
+    onMoveRight: (Car) -> Unit = {},
+    onDeleteRequest: (Car) -> Unit = {},
     pagerState: PagerState = rememberCarPagerState(cars.size),
     modifier: Modifier = Modifier
 ) {
-
     Column(modifier = modifier.fillMaxSize()) {
         HorizontalPager(
             state = pagerState,
             contentPadding = PaddingValues(horizontal = 28.dp),
             pageSpacing = 12.dp,
+            userScrollEnabled = !isEditMode,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
@@ -106,12 +116,66 @@ fun CarPager(
                     .padding(vertical = 10.dp)
             ) {
                 if (page < cars.size) {
+                    val car = cars[page]
+                    val isFirst = page == 0
+                    val isLast = page == cars.lastIndex
+
+                    // Card itself
                     CarPagerCard(
-                        car = cars[page],
-                        nextServiceDueMs = nextServiceDueMsByCarId[cars[page].id],
-                        onClick = { onCarClick(cars[page].id) },
-                        onLongClick = { onCarLongPress(cars[page]) }
+                        car = car,
+                        nextServiceDueMs = nextServiceDueMsByCarId[car.id],
+                        onClick = { if (!isEditMode) onCarClick(car.id) },
+                        onLongClick = { onCarLongPress(car) }
                     )
+
+                    // Edit mode overlays — only on current card
+                    if (isEditMode && isCurrentPage) {
+
+                        // Left arrow (move to lower index)
+                        if (!isFirst) {
+                            EditArrowButton(
+                                icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                contentDescription = stringResource(R.string.car_edit_move_left),
+                                modifier = Modifier.align(Alignment.CenterStart),
+                                onClick = { onMoveLeft(car) }
+                            )
+                        }
+
+                        // Right arrow (move to higher index)
+                        if (!isLast) {
+                            EditArrowButton(
+                                icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = stringResource(R.string.car_edit_move_right),
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                onClick = { onMoveRight(car) }
+                            )
+                        }
+
+                        // X — delete button at top-end corner
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 8.dp, y = (-8).dp)
+                        ) {
+                            IconButton(
+                                onClick = { onDeleteRequest(car) },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.error,
+                                        CircleShape
+                                    )
+                                    .shadow(4.dp, CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Close,
+                                    contentDescription = stringResource(R.string.car_edit_delete),
+                                    tint = MaterialTheme.colorScheme.onError,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
                 } else {
                     AddCarPagerCard(onClick = onAddCar)
                 }
@@ -145,6 +209,36 @@ fun CarPager(
                         )
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun EditArrowButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier.padding(horizontal = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier
+                .size(48.dp)
+                .background(
+                    color = Color.Black.copy(alpha = 0.45f),
+                    shape = CircleShape
+                )
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
+            )
         }
     }
 }
@@ -235,7 +329,6 @@ private fun CarPagerCard(car: Car, nextServiceDueMs: Long?, onClick: () -> Unit,
                         color = Color.White.copy(alpha = 0.75f)
                     )
                 }
-
             }
 
             // ── Details section (~56% of card) ────────────────────────
@@ -244,8 +337,8 @@ private fun CarPagerCard(car: Car, nextServiceDueMs: Long?, onClick: () -> Unit,
                     .fillMaxWidth()
                     .weight(0.56f)
                     .padding(horizontal = 20.dp)
-                    .padding(top = 18.dp, bottom = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .padding(top = 16.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
                 // License plate + KM row
                 Row(
@@ -256,7 +349,7 @@ private fun CarPagerCard(car: Car, nextServiceDueMs: Long?, onClick: () -> Unit,
                     if (car.currentKm != null) {
                         Text(
                             text = stringResource(R.string.car_card_km_format, car.currentKm.toString()),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -264,7 +357,7 @@ private fun CarPagerCard(car: Car, nextServiceDueMs: Long?, onClick: () -> Unit,
                 }
 
                 // ── Status progress bars ──────────────────────────────
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     car.testExpiryDate?.let { expiry ->
                         StatusProgressRow(
                             label = stringResource(R.string.car_pager_test_label),
@@ -301,7 +394,6 @@ private fun StatusProgressRow(label: String, expiryMs: Long) {
         StatusLevel.UNKNOWN -> MaterialTheme.colorScheme.outlineVariant
     }
 
-    // Progress: 365 days = 100%, clamped 0..1
     val progress = (days.coerceIn(0, 365) / 365f)
 
     val daysLabel = when {
@@ -317,16 +409,16 @@ private fun StatusProgressRow(label: String, expiryMs: Long) {
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(76.dp)
+            modifier = Modifier.width(88.dp)
         )
         LinearProgressIndicator(
             progress = { progress },
             modifier = Modifier
                 .weight(1f)
-                .height(10.dp)
+                .height(12.dp)
                 .clip(RoundedCornerShape(50)),
             color = barColor,
             trackColor = barColor.copy(alpha = 0.15f),
@@ -334,10 +426,10 @@ private fun StatusProgressRow(label: String, expiryMs: Long) {
         )
         Text(
             text = daysLabel,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
             color = barColor,
-            modifier = Modifier.width(64.dp),
+            modifier = Modifier.width(72.dp),
             textAlign = TextAlign.End,
             maxLines = 1
         )
@@ -394,4 +486,3 @@ private fun AddCarPagerCard(onClick: () -> Unit) {
         }
     }
 }
-
