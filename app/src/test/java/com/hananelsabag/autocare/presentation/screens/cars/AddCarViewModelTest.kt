@@ -148,7 +148,7 @@ class AddCarViewModelTest {
             make = "Old Make",
             model = "Old Model",
             year = 2018,
-            licensePlate = "OLD-123",
+            licensePlate = "12-345-67",
             createdAt = 1_000_000L
         )
         every { repository.getCarById(5) } returns flowOf(existingCar)
@@ -159,7 +159,7 @@ class AddCarViewModelTest {
         viewModel.make = "New Make"
         viewModel.model = "New Model"
         viewModel.year = "2022"
-        viewModel.licensePlate = "NEW-456"
+        viewModel.licensePlate = "9876543"
 
         viewModel.save {}
         advanceUntilIdle()
@@ -179,7 +179,7 @@ class AddCarViewModelTest {
             make = "Honda",
             model = "Civic",
             year = 2019,
-            licensePlate = "AB-123-CD",
+            licensePlate = "12-345-67",
             createdAt = originalCreatedAt
         )
         every { repository.getCarById(7) } returns flowOf(existingCar)
