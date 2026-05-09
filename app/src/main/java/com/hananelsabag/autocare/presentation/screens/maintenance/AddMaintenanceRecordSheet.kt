@@ -85,10 +85,9 @@ import coil3.compose.AsyncImage
 import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.data.local.entities.MaintenanceRecord
 import com.hananelsabag.autocare.data.local.entities.RecordType
+import com.hananelsabag.autocare.presentation.components.FileAttachButton
 import com.hananelsabag.autocare.util.ThousandsVisualTransformation
-import com.hananelsabag.autocare.util.copyUriToInternal
 import com.hananelsabag.autocare.util.toFormattedDate
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -122,11 +121,8 @@ fun AddMaintenanceRecordSheet(
     var notes by remember { mutableStateOf(existingRecord?.notes ?: "") }
     var receiptUri by remember { mutableStateOf(existingRecord?.receiptUri) }
     var showDatePicker by remember { mutableStateOf(false) }
-    var showReceiptSourceMenu by remember { mutableStateOf(false) }
-    var cameraReceiptUri by remember { mutableStateOf<Uri?>(null) }
     var descriptionError by remember { mutableStateOf(false) }
     var kmError by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     // Multi-select quick suggestions state
     var selectedChips by remember { mutableStateOf(emptySet<String>()) }
@@ -134,41 +130,6 @@ fun AddMaintenanceRecordSheet(
 
     // When record type changes, reset chip selection (chips are type-specific)
     LaunchedEffect(type) { selectedChips = emptySet() }
-
-    val receiptPicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        uri?.let { sourceUri ->
-            scope.launch {
-                val internalUri = copyUriToInternal(context, sourceUri, "receipts")
-                receiptUri = (internalUri ?: sourceUri).toString()
-            }
-        }
-    }
-
-    val receiptCameraLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success) {
-            cameraReceiptUri?.let { cameraUri ->
-                scope.launch {
-                    val internalUri = copyUriToInternal(context, cameraUri, "receipts")
-                    receiptUri = (internalUri ?: cameraUri).toString()
-                }
-            }
-        }
-    }
-
-    val pdfPicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { sourceUri ->
-            scope.launch {
-                val internalUri = copyUriToInternal(context, sourceUri, "receipts")
-                receiptUri = (internalUri ?: sourceUri).toString()
-            }
-        }
-    }
 
     val isDirty = description.isNotBlank() || km.isNotBlank() || cost.isNotBlank() ||
         notes.isNotBlank() || receiptUri != null
@@ -618,111 +579,14 @@ fun AddMaintenanceRecordSheet(
 
         // ── Receipt photo ─────────────────────────────────────────────
         SheetSectionHeader(stringResource(R.string.record_receipt_label))
-
-        val receiptSourceDropdown: @Composable () -> Unit = {
-            DropdownMenu(
-                expanded = showReceiptSourceMenu,
-                onDismissRequest = { showReceiptSourceMenu = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.photo_option_camera)) },
-                    leadingIcon = { Icon(Icons.Filled.PhotoCamera, contentDescription = null) },
-                    onClick = {
-                        showReceiptSourceMenu = false
-                        val uri = createTempCameraUri(context)
-                        cameraReceiptUri = uri
-                        receiptCameraLauncher.launch(uri)
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.photo_option_gallery)) },
-                    leadingIcon = { Icon(Icons.Outlined.PhotoLibrary, contentDescription = null) },
-                    onClick = {
-                        showReceiptSourceMenu = false
-                        receiptPicker.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.photo_option_pdf)) },
-                    leadingIcon = { Icon(Icons.Filled.PictureAsPdf, contentDescription = null) },
-                    onClick = {
-                        showReceiptSourceMenu = false
-                        pdfPicker.launch("application/pdf")
-                    }
-                )
-            }
-        }
-
-        if (receiptUri != null) {
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .fillMaxWidth()
-                    .height(148.dp)
-                    .clip(MaterialTheme.shapes.large)
-                    .clickable { showReceiptSourceMenu = true }
-            ) {
-                AsyncImage(
-                    model = receiptUri,
-                    contentDescription = stringResource(R.string.record_receipt_label),
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-                IconButton(
-                    onClick = { receiptUri = null },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .size(32.dp)
-                        .background(
-                            MaterialTheme.colorScheme.errorContainer,
-                            MaterialTheme.shapes.small
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Clear,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-                receiptSourceDropdown()
-            }
-        } else {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedCard(
-                    onClick = { showReceiptSourceMenu = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = MaterialTheme.shapes.large
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 18.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Receipt,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = stringResource(R.string.record_receipt_add),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                receiptSourceDropdown()
-            }
-        }
+        FileAttachButton(
+            fileUri = receiptUri,
+            onFileSelected = { receiptUri = it },
+            onClearFile = { receiptUri = null },
+            cameraUriProvider = { createTempCameraUri(context) },
+            subfolder = "receipts",
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
 
         // ── Save ──────────────────────────────────────────────────────
         val isSaveable = description.isNotBlank() &&

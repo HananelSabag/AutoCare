@@ -474,4 +474,8 @@
     <string name="content_description_edit">ערוך</string>
     <string name="content_description_delete">מחק</string>
     <string name="content_description_add">הוסף</string>
+    <string name="file_not_available">הקובץ אינו זמין — לחץ קשר מחדש</string>
+    <string name="file_reattach">קשר מחדש</string>
+    <string name="documents_delete_confirm">מחק רשומה?</string>
+    <string name="documents_delete_confirm_body">פעולה זו אינה ניתנת לביטול.</string>
 </resources>

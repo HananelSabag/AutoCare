@@ -3,11 +3,9 @@ package com.hananelsabag.autocare.presentation.screens.documents
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.rememberCoroutineScope
-import com.hananelsabag.autocare.util.copyUriToInternal
-import kotlinx.coroutines.launch
+import com.hananelsabag.autocare.presentation.components.FileAttachButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +34,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.Button
@@ -285,52 +284,87 @@ private fun VehicleRecordCard(
 private fun DocumentFilePreview(fileUri: String, uploadedAt: Long) {
     val context = LocalContext.current
     val uri = remember(fileUri) { Uri.parse(fileUri) }
+
+    var isAccessible by remember(fileUri) { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(fileUri) {
+        isAccessible = withContext(Dispatchers.IO) {
+            try { context.contentResolver.openInputStream(uri)?.close(); true }
+            catch (_: Exception) { false }
+        }
+    }
+
     val mimeType = remember(fileUri) {
-        context.contentResolver.getType(uri) ?: "*/*"
+        try { context.contentResolver.getType(uri) ?: "*/*" } catch (_: Exception) { "*/*" }
     }
     val isImage = mimeType.startsWith("image/")
 
     Column {
-        if (isImage) {
-            // Image thumbnail
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                AsyncImage(
-                    model = uri,
-                    contentDescription = stringResource(R.string.documents_file_attached),
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-        } else {
-            // PDF / unknown file indicator
-            Surface(
-                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+        when {
+            isAccessible == false -> {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.PictureAsPdf,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(24.dp)
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = stringResource(R.string.file_not_available),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+            isImage -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .clip(MaterialTheme.shapes.medium)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    AsyncImage(
+                        model = uri,
+                        contentDescription = stringResource(R.string.documents_file_attached),
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = stringResource(R.string.documents_pdf_file),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
-                    )
+                }
+            }
+            else -> {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PictureAsPdf,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = stringResource(R.string.documents_pdf_file),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
@@ -386,26 +420,12 @@ private fun EditVehicleRecordSheet(
     onSave: (expiryDate: Long, fileUri: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val context = LocalContext.current
-
     val defaultDateMs = existingRecord?.expiryDate
         ?: LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     var expiryDateMs by remember { mutableStateOf(defaultDateMs) }
     var fileUri by remember { mutableStateOf(existingRecord?.fileUri) }
     var showDatePicker by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
-    val filePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { sourceUri ->
-            scope.launch {
-                val internalUri = copyUriToInternal(context, sourceUri, "documents")
-                fileUri = (internalUri ?: sourceUri).toString()
-            }
-        }
-    }
 
     val sheetTitle = stringResource(
         if (type == VehicleRecordType.TEST) R.string.documents_sheet_title_test
@@ -477,7 +497,7 @@ private fun EditVehicleRecordSheet(
             }
         }
 
-        // Optional file attachment
+        // File attachment
         Text(
             text = stringResource(R.string.documents_attach_file),
             style = MaterialTheme.typography.labelMedium,
@@ -485,78 +505,14 @@ private fun EditVehicleRecordSheet(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
-        if (fileUri != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.AttachFile,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(8.dp).size(16.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = stringResource(R.string.documents_file_attached),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(onClick = { fileUri = null }) {
-                    Icon(
-                        imageVector = Icons.Filled.Clear,
-                        contentDescription = stringResource(R.string.documents_remove_file),
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-            OutlinedButton(
-                onClick = { filePicker.launch("*/*") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Text(stringResource(R.string.documents_replace_file))
-            }
-        } else {
-            OutlinedCard(
-                onClick = { filePicker.launch("*/*") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.AttachFile,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = stringResource(R.string.documents_attach_file),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(8.dp))
+        FileAttachButton(
+            fileUri = fileUri,
+            onFileSelected = { fileUri = it },
+            onClearFile = { fileUri = null },
+            subfolder = "documents",
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
 
         // Save
         Button(

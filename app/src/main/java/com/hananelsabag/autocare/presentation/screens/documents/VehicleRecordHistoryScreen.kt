@@ -1,5 +1,6 @@
 package com.hananelsabag.autocare.presentation.screens.documents
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,9 +19,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,12 +32,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -107,6 +117,8 @@ fun VehicleRecordHistoryScreen(
                 }
             }
         } else {
+            var pendingDeleteId by remember { mutableStateOf<Int?>(null) }
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -115,8 +127,59 @@ fun VehicleRecordHistoryScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(records, key = { it.id }) { record ->
-                    VehicleHistoryCard(record = record)
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                pendingDeleteId = record.id
+                            }
+                            false  // don't auto-dismiss — wait for confirm
+                        }
+                    )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false,
+                        backgroundContent = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(vertical = 2.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.errorContainer,
+                                        MaterialTheme.shapes.large
+                                    ),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Delete,
+                                    contentDescription = stringResource(R.string.content_description_delete),
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(end = 20.dp).size(24.dp)
+                                )
+                            }
+                        }
+                    ) {
+                        VehicleHistoryCard(record = record)
+                    }
                 }
+            }
+
+            if (pendingDeleteId != null) {
+                AlertDialog(
+                    onDismissRequest = { pendingDeleteId = null },
+                    title = { Text(stringResource(R.string.documents_delete_confirm)) },
+                    text = { Text(stringResource(R.string.documents_delete_confirm_body)) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.deleteRecord(pendingDeleteId!!)
+                            pendingDeleteId = null
+                        }) { Text(stringResource(R.string.content_description_delete), color = MaterialTheme.colorScheme.error) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pendingDeleteId = null }) {
+                            Text(stringResource(R.string.btn_cancel))
+                        }
+                    }
+                )
             }
         }
     }

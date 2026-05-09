@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -32,5 +33,9 @@ class VehicleRecordHistoryViewModel @Inject constructor(
 
     fun init(carId: Int) {
         if (_carId.value == null) _carId.value = carId
+    }
+
+    fun deleteRecord(id: Int) {
+        viewModelScope.launch { repository.deleteRecord(id) }
     }
 }
