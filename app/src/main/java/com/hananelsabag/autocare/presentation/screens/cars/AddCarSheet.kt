@@ -96,6 +96,7 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.presentation.components.ImageCropSheet
+import com.hananelsabag.autocare.presentation.components.SheetSectionHeader
 import com.hananelsabag.autocare.util.CAR_MAKES
 import com.hananelsabag.autocare.util.ThousandsVisualTransformation
 import com.hananelsabag.autocare.util.modelsForMake
@@ -377,7 +378,7 @@ fun AddCarSheetContent(
         )
 
         // ── Required fields ──────────────────────────────────────────
-        SectionHeader(stringResource(R.string.add_car_section_required))
+        SheetSectionHeader(stringResource(R.string.add_car_section_required))
 
         Text(
             text = stringResource(R.string.add_car_required_legend),
@@ -535,7 +536,7 @@ fun AddCarSheetContent(
         }
 
         // ── Optional fields ──────────────────────────────────────────
-        SectionHeader(stringResource(R.string.add_car_section_optional))
+        SheetSectionHeader(stringResource(R.string.add_car_section_optional))
 
         // KM field — digits only, max 6, thousands formatting, helper text
         CarFormField(
@@ -551,24 +552,6 @@ fun AddCarSheetContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp)
-        )
-
-        // ── Date fields ──────────────────────────────────────────────
-        SectionHeader(stringResource(R.string.add_car_section_dates))
-
-        DatePickerField(
-            label = stringResource(R.string.add_car_test_expiry),
-            dateMs = viewModel.testExpiryDate,
-            onDateSelected = { viewModel.testExpiryDate = it },
-            onDateCleared = { viewModel.testExpiryDate = null },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        )
-        DatePickerField(
-            label = stringResource(R.string.add_car_insurance_expiry),
-            dateMs = viewModel.insuranceExpiryDate,
-            onDateSelected = { viewModel.insuranceExpiryDate = it },
-            onDateCleared = { viewModel.insuranceExpiryDate = null },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
 
         // ── Notes — with character counter ───────────────────────────
@@ -680,14 +663,17 @@ private fun CompactColorStrip(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var showCustomField by remember { mutableStateOf(false) }
 
-    // If the current color is not a known key, we're in "custom" mode
-    val isCustom = selectedColor.isNotBlank() &&
+    // Track user intent to show custom field independently from what's stored.
+    // Initialized to true if the stored value is already a custom (non-predefined) color.
+    val isStoredCustom = selectedColor.isNotBlank() &&
         CAR_COLOR_OPTIONS.none { it.key.equals(selectedColor, ignoreCase = true) }
+    var showCustomField by remember { mutableStateOf(isStoredCustom) }
 
-    // Show custom field if the stored value is already custom, or user tapped "אחר"
-    val customFieldVisible = showCustomField || isCustom
+    // Separate mutable text so typing "red" in custom field doesn't trigger predefined selection.
+    var customText by remember {
+        mutableStateOf(if (isStoredCustom) selectedColor else "")
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Row: label + selected color name
@@ -702,7 +688,6 @@ private fun CompactColorStrip(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.width(8.dp))
-            // Show selected color name as a small chip
             if (selectedColor.isNotBlank()) {
                 val displayName = CAR_COLOR_OPTIONS
                     .find { it.key.equals(selectedColor, ignoreCase = true) }
@@ -731,55 +716,61 @@ private fun CompactColorStrip(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             CAR_COLOR_OPTIONS.forEach { option ->
-                val isSelected = selectedColor.equals(option.key, ignoreCase = true)
+                // A predefined circle is selected only when NOT in custom mode and key matches
+                val isSelected = !showCustomField && selectedColor.equals(option.key, ignoreCase = true)
                 CompactColorCircle(
                     option = option,
                     isSelected = isSelected,
                     onClick = {
                         onColorSelected(option.key)
                         showCustomField = false
+                        customText = ""
                     }
                 )
             }
             // "אחר" button — pen icon, shows text field
-            val isOtherActive = customFieldVisible
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isOtherActive) MaterialTheme.colorScheme.primary
+                        if (showCustomField) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.surfaceContainerHighest
                     )
                     .clickable {
-                        showCustomField = !showCustomField
-                        if (!showCustomField && isCustom) onColorSelected("")
+                        if (showCustomField) {
+                            // Closing custom mode — clear custom color
+                            showCustomField = false
+                            customText = ""
+                            onColorSelected("")
+                        } else {
+                            showCustomField = true
+                        }
                     },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Filled.Edit,
                     contentDescription = stringResource(R.string.add_car_color_other),
-                    tint = if (isOtherActive) MaterialTheme.colorScheme.onPrimary
+                    tint = if (showCustomField) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
             }
         }
 
-        // Animated custom text field
+        // Animated custom text field — driven purely by showCustomField flag
         AnimatedVisibility(
-            visible = customFieldVisible,
+            visible = showCustomField,
             enter = expandVertically(),
             exit = shrinkVertically()
         ) {
             OutlinedTextField(
-                value = if (isCustom) selectedColor else "",
+                value = customText,
                 onValueChange = { typed ->
-                    val matched = CAR_COLOR_OPTIONS.firstOrNull { option ->
-                        context.getString(option.nameRes).equals(typed, ignoreCase = true)
-                    }
-                    onColorSelected(matched?.key ?: typed)
+                    customText = typed
+                    // Store raw typed value regardless of whether it matches a predefined key
+                    onColorSelected(typed.trim())
                 },
                 label = { Text(stringResource(R.string.add_car_color)) },
                 placeholder = {
@@ -843,26 +834,6 @@ private fun CompactColorCircle(
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
-
-@Composable
-private fun SectionHeader(title: String) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 4.dp)
-        )
-        HorizontalDivider(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-    }
-}
 
 @Composable
 private fun CarFormField(

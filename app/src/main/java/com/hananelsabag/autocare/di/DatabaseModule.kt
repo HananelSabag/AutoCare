@@ -155,12 +155,15 @@ private val MIGRATION_7_8 = object : Migration(7, 8) {
         // so users upgrading from v7 see no visual change.
         val cursor = db.query("SELECT id FROM cars ORDER BY createdAt DESC")
         var order = 0
-        while (cursor.moveToNext()) {
-            val id = cursor.getInt(0)
-            db.execSQL("UPDATE cars SET displayOrder = $order WHERE id = $id")
-            order++
+        try {
+            while (cursor.moveToNext()) {
+                val id = cursor.getInt(0)
+                db.execSQL("UPDATE cars SET displayOrder = ? WHERE id = ?", arrayOf(order, id))
+                order++
+            }
+        } finally {
+            cursor.close()
         }
-        cursor.close()
     }
 }
 

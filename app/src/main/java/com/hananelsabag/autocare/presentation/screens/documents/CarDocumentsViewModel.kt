@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -25,6 +26,8 @@ class CarDocumentsViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _carId = MutableStateFlow<Int?>(null)
+    private val _error = MutableStateFlow<String?>(null)
+    val error = _error.asStateFlow()
 
     val activeTestRecord = _carId
         .filterNotNull()
@@ -37,8 +40,10 @@ class CarDocumentsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun init(carId: Int) {
-        if (_carId.value == null) _carId.value = carId
+        if (_carId.value != carId) _carId.value = carId
     }
+
+    fun clearError() { _error.value = null }
 
     fun saveRecord(
         carId: Int,
@@ -47,22 +52,25 @@ class CarDocumentsViewModel @Inject constructor(
         fileUri: String?
     ) {
         viewModelScope.launch {
-            vehicleRecordRepository.saveRecord(
-                VehicleRecord(
-                    carId = carId,
-                    type = type,
-                    expiryDate = expiryDate,
-                    fileUri = fileUri
+            try {
+                vehicleRecordRepository.saveRecord(
+                    VehicleRecord(
+                        carId = carId,
+                        type = type,
+                        expiryDate = expiryDate,
+                        fileUri = fileUri
+                    )
                 )
-            )
-            // Sync the expiry date on the Car entity so StatusBanner and reminders stay updated
-            val car = carRepository.getCarById(carId).first()
-            car?.let {
-                val updated = when (type) {
-                    VehicleRecordType.TEST -> it.copy(testExpiryDate = expiryDate)
-                    VehicleRecordType.INSURANCE -> it.copy(insuranceExpiryDate = expiryDate)
+                // Sync expiry on Car entity so StatusBanner + reminders stay current
+                carRepository.getCarById(carId).first()?.let { car ->
+                    val updated = when (type) {
+                        VehicleRecordType.TEST -> car.copy(testExpiryDate = expiryDate)
+                        VehicleRecordType.INSURANCE -> car.copy(insuranceExpiryDate = expiryDate)
+                    }
+                    carRepository.updateCar(updated)
                 }
-                carRepository.updateCar(updated)
+            } catch (e: Exception) {
+                _error.value = e.message
             }
         }
     }

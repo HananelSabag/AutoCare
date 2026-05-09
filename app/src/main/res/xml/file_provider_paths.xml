@@ -2,4 +2,7 @@
 <paths>
     <cache-path name="exported_files" path="exports/" />
     <cache-path name="camera_photos" path="." />
+    <files-path name="car_photos" path="car_photos/" />
+    <files-path name="documents" path="documents/" />
+    <files-path name="receipts" path="receipts/" />
 </paths>

@@ -127,14 +127,14 @@ fun CarsScreen(
         }
     }
 
-    // When a new car is saved, find it and offer reminder setup
+    // When a new car is saved, find it and offer reminder setup.
+    // Guard: only act if we haven't already shown the prompt for this car.
     LaunchedEffect(lastSavedCarId, cars) {
         val id = lastSavedCarId ?: return@LaunchedEffect
-        val car = cars.find { it.id == id }
-        if (car != null) {
-            reminderPromptCar = car
-            addCarViewModel.clearLastSavedCarId()
-        }
+        if (reminderPromptCar?.id == id) return@LaunchedEffect  // already showing prompt
+        val car = cars.find { it.id == id } ?: return@LaunchedEffect
+        reminderPromptCar = car
+        addCarViewModel.clearLastSavedCarId()
     }
 
     Scaffold(

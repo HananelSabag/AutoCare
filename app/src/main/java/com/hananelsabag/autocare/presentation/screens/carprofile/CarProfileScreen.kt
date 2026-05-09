@@ -90,6 +90,7 @@ import com.hananelsabag.autocare.presentation.theme.StatusYellow
 import com.hananelsabag.autocare.presentation.theme.StatusYellowContainer
 import com.hananelsabag.autocare.util.StatusLevel
 import com.hananelsabag.autocare.util.carColorToComposeColor
+import com.hananelsabag.autocare.util.carColorToHebrewName
 import com.hananelsabag.autocare.util.daysFromNow
 import com.hananelsabag.autocare.util.getStatusLevel
 import com.hananelsabag.autocare.util.toFormattedDate
@@ -615,7 +616,7 @@ private fun QuickStatsRow(car: Car) {
             add(Triple(
                 Icons.Outlined.DirectionsCar,
                 stringResource(R.string.car_profile_color),
-                car.color
+                carColorToHebrewName(car.color)
             ))
     }
 
@@ -804,7 +805,7 @@ private fun SideActionTile(
 private fun StatsSection(stats: CarStats?, onAddFirstService: () -> Unit, onViewStats: () -> Unit) {
     when {
         stats == null -> FirstServiceCtaCard(onClick = onAddFirstService)
-        stats.totalRecords < 2 -> OneMoreServiceCtaCard(onClick = onAddFirstService)
+        stats.totalRecords < 2 -> OneMoreServiceCtaCard(recordCount = stats.totalRecords, onClick = onAddFirstService)
         else -> CarStatsCard(stats = stats, onClick = onViewStats)
     }
 }
@@ -866,7 +867,7 @@ private fun FirstServiceCtaCard(onClick: () -> Unit) {
 }
 
 @Composable
-private fun OneMoreServiceCtaCard(onClick: () -> Unit) {
+private fun OneMoreServiceCtaCard(recordCount: Int, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier
@@ -928,7 +929,7 @@ private fun OneMoreServiceCtaCard(onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 LinearProgressIndicator(
-                    progress = { 0.5f },
+                    progress = { recordCount / 2f },
                     modifier = Modifier
                         .weight(1f)
                         .height(6.dp)
@@ -937,7 +938,7 @@ private fun OneMoreServiceCtaCard(onClick: () -> Unit) {
                     trackColor = MaterialTheme.colorScheme.secondaryContainer
                 )
                 Text(
-                    text = stringResource(R.string.car_profile_one_service_progress),
+                    text = stringResource(R.string.car_profile_one_service_progress, recordCount),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.secondary
@@ -1063,9 +1064,7 @@ private fun CarStatsCard(stats: CarStats, onClick: () -> Unit) {
                         label = stringResource(R.string.stats_spent_this_year),
                         value = stringResource(
                             R.string.record_cost_format,
-                            if (stats.totalSpentThisYear % 1.0 == 0.0)
-                                stats.totalSpentThisYear.toInt().toString()
-                            else stats.totalSpentThisYear.toString()
+                            Math.round(stats.totalSpentThisYear).toString()
                         ),
                         icon = Icons.Outlined.AttachMoney
                     )
@@ -1076,9 +1075,7 @@ private fun CarStatsCard(stats: CarStats, onClick: () -> Unit) {
                         label = stringResource(R.string.stats_average_cost),
                         value = stringResource(
                             R.string.record_cost_format,
-                            if (stats.averageCost % 1.0 == 0.0)
-                                stats.averageCost.toInt().toString()
-                            else stats.averageCost.toString()
+                            kotlin.math.roundToInt(stats.averageCost).toString()
                         ),
                         icon = Icons.Outlined.Analytics
                     )

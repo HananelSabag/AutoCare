@@ -24,3 +24,23 @@ fun carColorToComposeColor(colorName: String): Color? = when (colorName.lowercas
     "נייבי", "navy"             -> Color(0xFF1A237E)
     else                        -> null
 }
+
+/** Returns the Hebrew display name for a stored color string (English or Hebrew). */
+fun carColorToHebrewName(colorName: String): String = when (colorName.lowercase().trim()) {
+    "white"  -> "לבן"
+    "black"  -> "שחור"
+    "grey", "gray" -> "אפור"
+    "silver" -> "כסוף"
+    "red"    -> "אדום"
+    "blue"   -> "כחול"
+    "green"  -> "ירוק"
+    "yellow" -> "צהוב"
+    "orange" -> "כתום"
+    "brown"  -> "חום"
+    "purple" -> "סגול"
+    "pink"   -> "ורוד"
+    "beige"  -> "בז'"
+    "gold"   -> "זהב"
+    "navy"   -> "נייבי"
+    else     -> colorName  // already Hebrew or unknown — return as-is
+}

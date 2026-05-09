@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -21,6 +22,8 @@ class MaintenanceHistoryViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _carId = MutableStateFlow<Int?>(null)
+    private val _error = MutableStateFlow<String?>(null)
+    val error = _error.asStateFlow()
 
     val records = _carId
         .filterNotNull()
@@ -32,18 +35,29 @@ class MaintenanceHistoryViewModel @Inject constructor(
         )
 
     fun init(carId: Int) {
-        if (_carId.value == null) _carId.value = carId
+        if (_carId.value != carId) _carId.value = carId
     }
 
+    fun clearError() { _error.value = null }
+
     fun insertRecord(record: MaintenanceRecord) {
-        viewModelScope.launch { repository.insertRecord(record) }
+        viewModelScope.launch {
+            try { repository.insertRecord(record) }
+            catch (e: Exception) { _error.value = e.message }
+        }
     }
 
     fun updateRecord(record: MaintenanceRecord) {
-        viewModelScope.launch { repository.updateRecord(record) }
+        viewModelScope.launch {
+            try { repository.updateRecord(record) }
+            catch (e: Exception) { _error.value = e.message }
+        }
     }
 
     fun deleteRecord(record: MaintenanceRecord) {
-        viewModelScope.launch { repository.deleteRecord(record) }
+        viewModelScope.launch {
+            try { repository.deleteRecord(record) }
+            catch (e: Exception) { _error.value = e.message }
+        }
     }
 }

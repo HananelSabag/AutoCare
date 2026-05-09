@@ -12,10 +12,10 @@ fun getStatusLevel(expiryMs: Long?): StatusLevel {
     expiryMs ?: return StatusLevel.UNKNOWN
     val days = expiryMs.daysFromNow()
     return when {
-        days < 0  -> StatusLevel.EXPIRED
-        days <= 7  -> StatusLevel.RED
-        days <= 30 -> StatusLevel.YELLOW
-        else       -> StatusLevel.GREEN
+        days < 0   -> StatusLevel.EXPIRED
+        days <= 45  -> StatusLevel.RED
+        days <= 100 -> StatusLevel.YELLOW
+        else        -> StatusLevel.GREEN
     }
 }
 

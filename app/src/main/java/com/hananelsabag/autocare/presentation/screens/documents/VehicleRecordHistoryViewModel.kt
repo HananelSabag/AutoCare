@@ -8,9 +8,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -20,6 +22,8 @@ class VehicleRecordHistoryViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _carId = MutableStateFlow<Int?>(null)
+    private val _error = MutableStateFlow<String?>(null)
+    val error = _error.asStateFlow()
 
     val allRecords = _carId
         .filterNotNull()
@@ -31,6 +35,15 @@ class VehicleRecordHistoryViewModel @Inject constructor(
         )
 
     fun init(carId: Int) {
-        if (_carId.value == null) _carId.value = carId
+        if (_carId.value != carId) _carId.value = carId
+    }
+
+    fun clearError() { _error.value = null }
+
+    fun deleteRecord(id: Int) {
+        viewModelScope.launch {
+            try { repository.deleteRecord(id) }
+            catch (e: Exception) { _error.value = e.message }
+        }
     }
 }
