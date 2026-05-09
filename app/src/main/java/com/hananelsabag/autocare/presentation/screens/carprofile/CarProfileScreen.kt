@@ -805,7 +805,7 @@ private fun SideActionTile(
 private fun StatsSection(stats: CarStats?, onAddFirstService: () -> Unit, onViewStats: () -> Unit) {
     when {
         stats == null -> FirstServiceCtaCard(onClick = onAddFirstService)
-        stats.totalRecords < 2 -> OneMoreServiceCtaCard(onClick = onAddFirstService)
+        stats.totalRecords < 2 -> OneMoreServiceCtaCard(recordCount = stats.totalRecords, onClick = onAddFirstService)
         else -> CarStatsCard(stats = stats, onClick = onViewStats)
     }
 }
@@ -867,7 +867,7 @@ private fun FirstServiceCtaCard(onClick: () -> Unit) {
 }
 
 @Composable
-private fun OneMoreServiceCtaCard(onClick: () -> Unit) {
+private fun OneMoreServiceCtaCard(recordCount: Int, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier
@@ -929,7 +929,7 @@ private fun OneMoreServiceCtaCard(onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 LinearProgressIndicator(
-                    progress = { 0.5f },
+                    progress = { recordCount / 2f },
                     modifier = Modifier
                         .weight(1f)
                         .height(6.dp)
@@ -938,7 +938,7 @@ private fun OneMoreServiceCtaCard(onClick: () -> Unit) {
                     trackColor = MaterialTheme.colorScheme.secondaryContainer
                 )
                 Text(
-                    text = stringResource(R.string.car_profile_one_service_progress),
+                    text = stringResource(R.string.car_profile_one_service_progress, recordCount),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.secondary
