@@ -128,8 +128,12 @@ fun AddMaintenanceRecordSheet(
     var selectedChips by remember { mutableStateOf(emptySet<String>()) }
     var chipsExpanded by remember { mutableStateOf(true) }
 
-    // When record type changes, reset chip selection (chips are type-specific)
-    LaunchedEffect(type) { selectedChips = emptySet() }
+    // When record type changes, reset chips and clear validation errors (context changed)
+    LaunchedEffect(type) {
+        selectedChips = emptySet()
+        descriptionError = false
+        kmError = false
+    }
 
     val isDirty = description.isNotBlank() || km.isNotBlank() || cost.isNotBlank() ||
         notes.isNotBlank() || receiptUri != null
@@ -539,7 +543,12 @@ fun AddMaintenanceRecordSheet(
                 onValueChange = { input ->
                     val filtered = input.filter { it.isDigit() || it == '.' }
                     val dotCount = filtered.count { it == '.' }
-                    if (dotCount <= 1 && filtered.length <= 8) cost = filtered
+                    // Reject if: more than one dot, starts with dot without digits, or too long
+                    val valid = dotCount <= 1 &&
+                        filtered.length <= 8 &&
+                        !(filtered == ".") &&
+                        !(filtered.startsWith("."))
+                    if (valid || filtered.isEmpty()) cost = filtered
                 },
                 label = { Text(stringResource(R.string.record_cost_optional)) },
                 prefix = { Text("₪") },

@@ -680,14 +680,17 @@ private fun CompactColorStrip(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var showCustomField by remember { mutableStateOf(false) }
 
-    // If the current color is not a known key, we're in "custom" mode
-    val isCustom = selectedColor.isNotBlank() &&
+    // Track user intent to show custom field independently from what's stored.
+    // Initialized to true if the stored value is already a custom (non-predefined) color.
+    val isStoredCustom = selectedColor.isNotBlank() &&
         CAR_COLOR_OPTIONS.none { it.key.equals(selectedColor, ignoreCase = true) }
+    var showCustomField by remember { mutableStateOf(isStoredCustom) }
 
-    // Show custom field if the stored value is already custom, or user tapped "אחר"
-    val customFieldVisible = showCustomField || isCustom
+    // Separate mutable text so typing "red" in custom field doesn't trigger predefined selection.
+    var customText by remember {
+        mutableStateOf(if (isStoredCustom) selectedColor else "")
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Row: label + selected color name
@@ -702,7 +705,6 @@ private fun CompactColorStrip(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.width(8.dp))
-            // Show selected color name as a small chip
             if (selectedColor.isNotBlank()) {
                 val displayName = CAR_COLOR_OPTIONS
                     .find { it.key.equals(selectedColor, ignoreCase = true) }
@@ -731,55 +733,61 @@ private fun CompactColorStrip(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             CAR_COLOR_OPTIONS.forEach { option ->
-                val isSelected = selectedColor.equals(option.key, ignoreCase = true)
+                // A predefined circle is selected only when NOT in custom mode and key matches
+                val isSelected = !showCustomField && selectedColor.equals(option.key, ignoreCase = true)
                 CompactColorCircle(
                     option = option,
                     isSelected = isSelected,
                     onClick = {
                         onColorSelected(option.key)
                         showCustomField = false
+                        customText = ""
                     }
                 )
             }
             // "אחר" button — pen icon, shows text field
-            val isOtherActive = customFieldVisible
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isOtherActive) MaterialTheme.colorScheme.primary
+                        if (showCustomField) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.surfaceContainerHighest
                     )
                     .clickable {
-                        showCustomField = !showCustomField
-                        if (!showCustomField && isCustom) onColorSelected("")
+                        if (showCustomField) {
+                            // Closing custom mode — clear custom color
+                            showCustomField = false
+                            customText = ""
+                            onColorSelected("")
+                        } else {
+                            showCustomField = true
+                        }
                     },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Filled.Edit,
                     contentDescription = stringResource(R.string.add_car_color_other),
-                    tint = if (isOtherActive) MaterialTheme.colorScheme.onPrimary
+                    tint = if (showCustomField) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
             }
         }
 
-        // Animated custom text field
+        // Animated custom text field — driven purely by showCustomField flag
         AnimatedVisibility(
-            visible = customFieldVisible,
+            visible = showCustomField,
             enter = expandVertically(),
             exit = shrinkVertically()
         ) {
             OutlinedTextField(
-                value = if (isCustom) selectedColor else "",
+                value = customText,
                 onValueChange = { typed ->
-                    val matched = CAR_COLOR_OPTIONS.firstOrNull { option ->
-                        context.getString(option.nameRes).equals(typed, ignoreCase = true)
-                    }
-                    onColorSelected(matched?.key ?: typed)
+                    customText = typed
+                    // Store raw typed value regardless of whether it matches a predefined key
+                    onColorSelected(typed.trim())
                 },
                 label = { Text(stringResource(R.string.add_car_color)) },
                 placeholder = {

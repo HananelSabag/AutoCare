@@ -98,13 +98,15 @@ class CarProfileViewModel @Inject constructor(
         )
 
     fun init(carId: Int) {
-        if (_carId.value == null) _carId.value = carId
+        if (_carId.value != carId) _carId.value = carId
     }
 
     fun deleteCar(onDeleted: () -> Unit) {
         viewModelScope.launch {
-            car.value?.let { repository.deleteCar(it) }
-            onDeleted()
+            try {
+                car.value?.let { repository.deleteCar(it) }
+                onDeleted()
+            } catch (_: Exception) { onDeleted() }
         }
     }
 
