@@ -40,7 +40,7 @@ class CarDocumentsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun init(carId: Int) {
-        if (_carId.value == null) _carId.value = carId
+        if (_carId.value != carId) _carId.value = carId
     }
 
     fun clearError() { _error.value = null }

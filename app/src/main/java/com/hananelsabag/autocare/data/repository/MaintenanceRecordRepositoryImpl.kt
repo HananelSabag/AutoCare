@@ -2,6 +2,7 @@ package com.hananelsabag.autocare.data.repository
 
 import com.hananelsabag.autocare.data.local.dao.MaintenanceRecordDao
 import com.hananelsabag.autocare.data.local.entities.MaintenanceRecord
+import com.hananelsabag.autocare.data.local.entities.RecordType
 import com.hananelsabag.autocare.domain.repository.MaintenanceRecordRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -14,7 +15,7 @@ class MaintenanceRecordRepositoryImpl @Inject constructor(
         dao.getRecordsForCar(carId)
 
     override suspend fun getLastMaintenanceDateForCar(carId: Int): Long? =
-        dao.getLastMaintenanceDateForCar(carId)
+        dao.getLastMaintenanceDateForCar(carId, RecordType.MAINTENANCE.name)
 
     override suspend fun insertRecord(record: MaintenanceRecord): Long =
         dao.insertRecord(record)
