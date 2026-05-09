@@ -227,6 +227,7 @@
     <string name="documents_section_test">טסט</string>
     <string name="documents_section_insurance">ביטוח</string>
     <string name="documents_expiry_label">תוקף</string>
+    <string name="documents_expiry_value">תוקף: %s</string>
     <string name="documents_uploaded_on">הועלה ב-%s</string>
     <string name="documents_no_record">לא הוגדר עדיין</string>
     <string name="documents_edit_record">עדכן</string>
@@ -476,6 +477,9 @@
     <string name="content_description_add">הוסף</string>
     <string name="file_not_available">הקובץ אינו זמין — לחץ קשר מחדש</string>
     <string name="file_reattach">קשר מחדש</string>
+    <string name="file_no_app_to_open">לא נמצאה אפליקציה לפתיחת הקובץ</string>
     <string name="documents_delete_confirm">מחק רשומה?</string>
     <string name="documents_delete_confirm_body">פעולה זו אינה ניתנת לביטול.</string>
+    <string name="error_save_failed">שמירה נכשלה — נסה שנית</string>
+    <string name="error_delete_failed">מחיקה נכשלה — נסה שנית</string>
 </resources>

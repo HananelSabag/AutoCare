@@ -3,6 +3,7 @@ package com.hananelsabag.autocare.presentation.components
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -109,7 +110,9 @@ fun FileAttachButton(
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success) pendingCameraUri?.let { cameraUri ->
+        val cameraUri = pendingCameraUri
+        pendingCameraUri = null  // always reset to avoid stale URI on next open
+        if (success && cameraUri != null) {
             scope.launch { copyAndSet(context, cameraUri, subfolder, onFileSelected) }
         }
     }
@@ -150,7 +153,7 @@ fun FileAttachButton(
                     Text(stringResource(R.string.photo_option_gallery), style = MaterialTheme.typography.labelMedium)
                 }
                 OutlinedButton(
-                    onClick = { pdfLauncher.launch("*/*") },
+                    onClick = { pdfLauncher.launch("application/pdf") },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Filled.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -206,7 +209,7 @@ fun FileAttachButton(
                             Text(stringResource(R.string.file_reattach), style = MaterialTheme.typography.labelSmall)
                         }
                         OutlinedButton(
-                            onClick = { pdfLauncher.launch("*/*") },
+                            onClick = { pdfLauncher.launch("application/pdf") },
                             modifier = Modifier.weight(1f)
                         ) {
                             Text("PDF", style = MaterialTheme.typography.labelSmall)
@@ -289,6 +292,7 @@ fun FileAttachButton(
 private fun OpenFileRow(fileUri: String, mimeType: String) {
     val context = LocalContext.current
     val uri = Uri.parse(fileUri)
+    val noAppMsg = stringResource(R.string.file_no_app_to_open)
     FilledTonalButton(
         onClick = {
             try {
@@ -297,7 +301,9 @@ private fun OpenFileRow(fileUri: String, mimeType: String) {
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 context.startActivity(intent)
-            } catch (_: ActivityNotFoundException) { }
+            } catch (_: ActivityNotFoundException) {
+                Toast.makeText(context, noAppMsg, Toast.LENGTH_SHORT).show()
+            }
         },
     ) {
         Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))

@@ -45,18 +45,22 @@ suspend fun copyUriToInternal(
  */
 suspend fun saveCarPhotoToGallery(context: Context, file: File): Unit = withContext(Dispatchers.IO) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return@withContext
+    val values = ContentValues().apply {
+        put(MediaStore.Images.Media.DISPLAY_NAME, file.name)
+        put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+        put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/AutoCare")
+        put(MediaStore.Images.Media.IS_PENDING, 1)
+    }
+    val resolver = context.contentResolver
+    val uri = try {
+        resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+    } catch (_: Exception) { null } ?: return@withContext
+
     try {
-        val values = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, file.name)
-            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/AutoCare")
-            put(MediaStore.Images.Media.IS_PENDING, 1)
-        }
-        val resolver = context.contentResolver
-        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: return@withContext
         resolver.openOutputStream(uri)?.use { out -> file.inputStream().use { it.copyTo(out) } }
-        values.clear()
-        values.put(MediaStore.Images.Media.IS_PENDING, 0)
-        resolver.update(uri, values, null, null)
-    } catch (_: Exception) {}
+    } finally {
+        // Always clear IS_PENDING so the file is visible in gallery (even if copy failed)
+        val pending = ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) }
+        try { resolver.update(uri, pending, null, null) } catch (_: Exception) {}
+    }
 }

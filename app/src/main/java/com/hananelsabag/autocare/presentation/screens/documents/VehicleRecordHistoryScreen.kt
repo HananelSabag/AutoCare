@@ -163,14 +163,14 @@ fun VehicleRecordHistoryScreen(
                 }
             }
 
-            if (pendingDeleteId != null) {
+            pendingDeleteId?.let { idToDelete ->
                 AlertDialog(
                     onDismissRequest = { pendingDeleteId = null },
                     title = { Text(stringResource(R.string.documents_delete_confirm)) },
                     text = { Text(stringResource(R.string.documents_delete_confirm_body)) },
                     confirmButton = {
                         TextButton(onClick = {
-                            viewModel.deleteRecord(pendingDeleteId!!)
+                            viewModel.deleteRecord(idToDelete)
                             pendingDeleteId = null
                         }) { Text(stringResource(R.string.content_description_delete), color = MaterialTheme.colorScheme.error) }
                     },
@@ -238,7 +238,7 @@ private fun VehicleHistoryCard(record: VehicleRecord) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = stringResource(R.string.documents_expiry_label) + ": " + record.expiryDate.toFormattedDate(),
+                    text = stringResource(R.string.documents_expiry_value, record.expiryDate.toFormattedDate()),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface

@@ -11,17 +11,20 @@ class Converters {
     fun fromRecordType(value: RecordType): String = value.name
 
     @TypeConverter
-    fun toRecordType(value: String): RecordType = RecordType.valueOf(value)
+    fun toRecordType(value: String): RecordType =
+        RecordType.entries.firstOrNull { it.name == value } ?: RecordType.MAINTENANCE
 
     @TypeConverter
     fun fromReminderType(value: ReminderType): String = value.name
 
     @TypeConverter
-    fun toReminderType(value: String): ReminderType = ReminderType.valueOf(value)
+    fun toReminderType(value: String): ReminderType =
+        ReminderType.entries.firstOrNull { it.name == value } ?: ReminderType.TEST_EXPIRY
 
     @TypeConverter
     fun fromVehicleRecordType(value: VehicleRecordType): String = value.name
 
     @TypeConverter
-    fun toVehicleRecordType(value: String): VehicleRecordType = VehicleRecordType.valueOf(value)
+    fun toVehicleRecordType(value: String): VehicleRecordType =
+        VehicleRecordType.entries.firstOrNull { it.name == value } ?: VehicleRecordType.TEST
 }
