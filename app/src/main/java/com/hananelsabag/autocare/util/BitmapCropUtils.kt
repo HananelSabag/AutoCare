@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.ui.geometry.Offset
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -80,7 +81,10 @@ suspend fun cropAndSaveImage(
         }
         cropped.recycle()
 
-        Uri.fromFile(file)
+        // 6. Mirror to Pictures/AutoCare in the device gallery (Android 10+)
+        saveCarPhotoToGallery(context, file)
+
+        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     } catch (e: Exception) {
         null
     }

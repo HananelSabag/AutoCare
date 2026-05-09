@@ -5,6 +5,9 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.rememberCoroutineScope
+import com.hananelsabag.autocare.util.copyUriToInternal
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -391,17 +394,16 @@ private fun EditVehicleRecordSheet(
     var expiryDateMs by remember { mutableStateOf(defaultDateMs) }
     var fileUri by remember { mutableStateOf(existingRecord?.fileUri) }
     var showDatePicker by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     val filePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(
-                    it, Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            } catch (_: Exception) {}
-            fileUri = it.toString()
+        uri?.let { sourceUri ->
+            scope.launch {
+                val internalUri = copyUriToInternal(context, sourceUri, "documents")
+                fileUri = (internalUri ?: sourceUri).toString()
+            }
         }
     }
 

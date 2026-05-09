@@ -86,7 +86,9 @@ import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.data.local.entities.MaintenanceRecord
 import com.hananelsabag.autocare.data.local.entities.RecordType
 import com.hananelsabag.autocare.util.ThousandsVisualTransformation
+import com.hananelsabag.autocare.util.copyUriToInternal
 import com.hananelsabag.autocare.util.toFormattedDate
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -124,6 +126,7 @@ fun AddMaintenanceRecordSheet(
     var cameraReceiptUri by remember { mutableStateOf<Uri?>(null) }
     var descriptionError by remember { mutableStateOf(false) }
     var kmError by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     // Multi-select quick suggestions state
     var selectedChips by remember { mutableStateOf(emptySet<String>()) }
@@ -135,32 +138,35 @@ fun AddMaintenanceRecordSheet(
     val receiptPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
     ) { uri ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(
-                    it, Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            } catch (_: Exception) {}
-            receiptUri = it.toString()
+        uri?.let { sourceUri ->
+            scope.launch {
+                val internalUri = copyUriToInternal(context, sourceUri, "receipts")
+                receiptUri = (internalUri ?: sourceUri).toString()
+            }
         }
     }
 
     val receiptCameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success) { cameraReceiptUri?.let { receiptUri = it.toString() } }
+        if (success) {
+            cameraReceiptUri?.let { cameraUri ->
+                scope.launch {
+                    val internalUri = copyUriToInternal(context, cameraUri, "receipts")
+                    receiptUri = (internalUri ?: cameraUri).toString()
+                }
+            }
+        }
     }
 
     val pdfPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(
-                    it, Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            } catch (_: Exception) {}
-            receiptUri = it.toString()
+        uri?.let { sourceUri ->
+            scope.launch {
+                val internalUri = copyUriToInternal(context, sourceUri, "receipts")
+                receiptUri = (internalUri ?: sourceUri).toString()
+            }
         }
     }
 
