@@ -34,8 +34,6 @@ class AddCarViewModel @Inject constructor(
     var color by mutableStateOf("")
     var photoUri by mutableStateOf<String?>(null)
     var currentKm by mutableStateOf("")
-    var testExpiryDate by mutableStateOf<Long?>(null)
-    var insuranceExpiryDate by mutableStateOf<Long?>(null)
     var notes by mutableStateOf("")
 
     // Validation errors
@@ -51,6 +49,8 @@ class AddCarViewModel @Inject constructor(
     private var editingCarId: Int? = null
     private var carCreatedAt: Long = 0L
     private var carDisplayOrder: Int = 0
+    private var existingTestExpiryDate: Long? = null
+    private var existingInsuranceExpiryDate: Long? = null
     val isEditing: Boolean get() = editingCarId != null
 
     // Emits the ID of the last newly-inserted car (not edits) so the UI can prompt for reminders
@@ -63,9 +63,10 @@ class AddCarViewModel @Inject constructor(
         editingCarId = null
         carCreatedAt = 0L
         carDisplayOrder = 0
+        existingTestExpiryDate = null
+        existingInsuranceExpiryDate = null
         make = ""; model = ""; year = ""; licensePlate = ""
         color = ""; photoUri = null; currentKm = ""
-        testExpiryDate = null; insuranceExpiryDate = null
         notes = ""
         makeError = null; modelError = null; yearError = null; licensePlateError = null
     }
@@ -76,6 +77,8 @@ class AddCarViewModel @Inject constructor(
                 editingCarId = car.id
                 carCreatedAt = car.createdAt
                 carDisplayOrder = car.displayOrder
+                existingTestExpiryDate = car.testExpiryDate
+                existingInsuranceExpiryDate = car.insuranceExpiryDate
                 make = car.make
                 model = car.model
                 year = car.year.toString()
@@ -83,8 +86,6 @@ class AddCarViewModel @Inject constructor(
                 color = car.color ?: ""
                 photoUri = car.photoUri
                 currentKm = car.currentKm?.toString() ?: ""
-                testExpiryDate = car.testExpiryDate
-                insuranceExpiryDate = car.insuranceExpiryDate
                 notes = car.notes ?: ""
             }
         }
@@ -140,8 +141,8 @@ class AddCarViewModel @Inject constructor(
                 color = color.trim().ifBlank { null },
                 photoUri = photoUri,
                 currentKm = currentKm.toIntOrNull(),
-                testExpiryDate = testExpiryDate,
-                insuranceExpiryDate = insuranceExpiryDate,
+                testExpiryDate = existingTestExpiryDate,
+                insuranceExpiryDate = existingInsuranceExpiryDate,
                 notes = notes.trim().ifBlank { null },
                 createdAt = if (isEditing) carCreatedAt else System.currentTimeMillis(),
                 displayOrder = newDisplayOrder

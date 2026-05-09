@@ -553,24 +553,6 @@ fun AddCarSheetContent(
                 .padding(horizontal = 16.dp, vertical = 4.dp)
         )
 
-        // ── Date fields ──────────────────────────────────────────────
-        SectionHeader(stringResource(R.string.add_car_section_dates))
-
-        DatePickerField(
-            label = stringResource(R.string.add_car_test_expiry),
-            dateMs = viewModel.testExpiryDate,
-            onDateSelected = { viewModel.testExpiryDate = it },
-            onDateCleared = { viewModel.testExpiryDate = null },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        )
-        DatePickerField(
-            label = stringResource(R.string.add_car_insurance_expiry),
-            dateMs = viewModel.insuranceExpiryDate,
-            onDateSelected = { viewModel.insuranceExpiryDate = it },
-            onDateCleared = { viewModel.insuranceExpiryDate = null },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        )
-
         // ── Notes — with character counter ───────────────────────────
         val notesMaxLength = 500
         OutlinedTextField(
