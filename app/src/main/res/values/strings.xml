@@ -150,7 +150,7 @@
     <string name="car_profile_first_service_subtitle">סטטיסטיקות יופיעו לאחר הוספת 2 טיפולים</string>
     <string name="car_profile_one_service_title">עוד טיפול אחד לסטטיסטיקות</string>
     <string name="car_profile_one_service_subtitle">יש לך טיפול מתועד אחד. הוסף עוד אחד כדי לפתוח את הסטטיסטיקות</string>
-    <string name="car_profile_one_service_progress">1 מתוך 2 טיפולים</string>
+    <string name="car_profile_one_service_progress">%d מתוך 2 טיפולים</string>
     <string name="car_profile_one_service_unlocks">מה יפתח:</string>
 
     <!-- Maintenance History Screen -->

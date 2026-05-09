@@ -86,6 +86,7 @@ import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.data.local.entities.MaintenanceRecord
 import com.hananelsabag.autocare.data.local.entities.RecordType
 import com.hananelsabag.autocare.presentation.components.FileAttachButton
+import com.hananelsabag.autocare.presentation.components.SheetSectionHeader
 import com.hananelsabag.autocare.util.ThousandsVisualTransformation
 import com.hananelsabag.autocare.util.toFormattedDate
 import java.time.LocalDate
@@ -660,25 +661,6 @@ fun AddMaintenanceRecordSheet(
 }
 
 // ── Private helpers ───────────────────────────────────────────────────────────
-
-@Composable
-private fun SheetSectionHeader(title: String) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 4.dp)
-        )
-        HorizontalDivider(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
-    }
-}
 
 private fun RecordType.labelRes(): Int = when (this) {
     RecordType.MAINTENANCE -> R.string.record_type_maintenance

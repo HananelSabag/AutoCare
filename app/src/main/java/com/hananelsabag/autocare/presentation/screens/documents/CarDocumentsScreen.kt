@@ -3,6 +3,7 @@ package com.hananelsabag.autocare.presentation.screens.documents
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import com.hananelsabag.autocare.presentation.components.FileAttachButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -389,7 +390,9 @@ private fun DocumentFilePreview(fileUri: String, uploadedAt: Long) {
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
                         context.startActivity(intent)
-                    } catch (_: ActivityNotFoundException) { }
+                    } catch (_: ActivityNotFoundException) {
+                        Toast.makeText(context, context.getString(R.string.file_no_app_to_open), Toast.LENGTH_SHORT).show()
+                    }
                 },
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                 modifier = Modifier.height(32.dp)

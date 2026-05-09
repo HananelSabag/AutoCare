@@ -96,6 +96,7 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import com.hananelsabag.autocare.R
 import com.hananelsabag.autocare.presentation.components.ImageCropSheet
+import com.hananelsabag.autocare.presentation.components.SheetSectionHeader
 import com.hananelsabag.autocare.util.CAR_MAKES
 import com.hananelsabag.autocare.util.ThousandsVisualTransformation
 import com.hananelsabag.autocare.util.modelsForMake
@@ -377,7 +378,7 @@ fun AddCarSheetContent(
         )
 
         // ── Required fields ──────────────────────────────────────────
-        SectionHeader(stringResource(R.string.add_car_section_required))
+        SheetSectionHeader(stringResource(R.string.add_car_section_required))
 
         Text(
             text = stringResource(R.string.add_car_required_legend),
@@ -535,7 +536,7 @@ fun AddCarSheetContent(
         }
 
         // ── Optional fields ──────────────────────────────────────────
-        SectionHeader(stringResource(R.string.add_car_section_optional))
+        SheetSectionHeader(stringResource(R.string.add_car_section_optional))
 
         // KM field — digits only, max 6, thousands formatting, helper text
         CarFormField(
@@ -833,26 +834,6 @@ private fun CompactColorCircle(
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
-
-@Composable
-private fun SectionHeader(title: String) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 4.dp)
-        )
-        HorizontalDivider(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-    }
-}
 
 @Composable
 private fun CarFormField(
