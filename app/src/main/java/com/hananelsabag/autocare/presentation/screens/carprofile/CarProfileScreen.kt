@@ -95,6 +95,7 @@ import com.hananelsabag.autocare.util.daysFromNow
 import com.hananelsabag.autocare.util.getStatusLevel
 import com.hananelsabag.autocare.util.toFormattedDate
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1075,7 +1076,7 @@ private fun CarStatsCard(stats: CarStats, onClick: () -> Unit) {
                         label = stringResource(R.string.stats_average_cost),
                         value = stringResource(
                             R.string.record_cost_format,
-                            kotlin.math.roundToInt(stats.averageCost).toString()
+                            stats.averageCost.roundToInt().toString()
                         ),
                         icon = Icons.Outlined.Analytics
                     )
