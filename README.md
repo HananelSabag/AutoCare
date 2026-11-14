@@ -8,7 +8,7 @@ Hebrew-first, RTL-ready, Material You design with full Light / Dark / System the
 
 ## Download
 
-**[AutoCare.apk](AutoCare.apk)** — debug build, signed, ready to sideload (Android 8.0+)
+**[AutoCare.apk](https://github.com/HananelSabag/AutoCare/releases/latest)** (GitHub Releases) — debug build, signed, ready to sideload (Android 8.0+)
 
 > Enable *Install from unknown sources* in your device settings before installing.
 
@@ -60,7 +60,7 @@ Hebrew-first, RTL-ready, Material You design with full Light / Dark / System the
 
 ## Screenshots
 
-*Coming soon*
+<img src="AutoCare_Demo.jpg" alt="AutoCare — my cars screen" width="320">
 
 ---
 

@@ -28,3 +28,9 @@ Thumbs.db
 *.keystore
 *.jks
 google-services.json
+
+# Local-only: AI-agent notes, IDE settings and build outputs
+.claude/
+Claude.md
+PROGRESS.md
+*.apk
